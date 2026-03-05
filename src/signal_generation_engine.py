@@ -2,7 +2,7 @@ import os
 import logging
 import pandas as pd
 # from datetime import time
-from utils.common_utils import (
+from src.utils.common_utils import (
     get_date_range,
     fetch_candles,
     create_upstox_api,
@@ -10,19 +10,24 @@ from utils.common_utils import (
     load_stock_symbols_from_s3,
     apply_trailing_sl
 )
-from utils.indicators import three_horse_crow_pandas
+from src.utils.indicators import three_horse_crow_pandas
 
-from utils.webhook_trigger import index_signal_webhook_handler
+from src.utils.webhook_trigger import index_signal_webhook_handler
 
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+pd.set_option("display.max_rows", None)
+pd.set_option("display.max_columns", None)
+pd.set_option("display.width", None)
+pd.set_option("display.max_colwidth", None)
+
 ACCESS_TOKEN = os.getenv("ACCESS_TOKEN", "")
 SWING = 3
 BUCKET = 'datahub-market-data-live'
 EQUITY_PATH = 'nse/equity/ind_nifty200list.csv'
-INSTRUMENT_PATH = '/Users/keerthirajamani/Downloads/NSE.json'
+INSTRUMENT_PATH = "/var/task/src/NSE.json"
 
 trading_symbol_metadata = {'NIFTY', 'FINNIFTY', 'BANKNIFTY'}
 # trading_symbol_metadata = {'NIFTY'}
@@ -104,5 +109,5 @@ def lambda_handler(event, context):
             logger.exception(f"Failed for {symbol}")
 
 # RUN
-event = {"MODE": "INDEX", "UNIT": "hours", "INTERVAL": 2}
-lambda_handler(event, None)
+# event = {"MODE": "INDEX", "UNIT": "hours", "INTERVAL": 2}
+# lambda_handler(event, None)
