@@ -28,9 +28,10 @@ SWING = 3
 BUCKET = 'datahub-market-data-live'
 EQUITY_PATH = 'nse/equity/ind_nifty200list.csv'
 INSTRUMENT_PATH = "/var/task/src/NSE.json"
+# INSTRUMENT_PATH = "/Users/keerthirajamani/Downloads/sourceCode/parallax/src/NSE.json" # Added for testing.
 
 trading_symbol_metadata = {'NIFTY', 'FINNIFTY', 'BANKNIFTY'}
-# trading_symbol_metadata = {'NIFTY'}
+# trading_symbol_metadata = {'NIFTY'} # Added for testing.
 
 def process_instrument(api, symbol, instrument_key, exchange_token, unit, interval):
     candles = fetch_candles(api, instrument_key, unit, interval)

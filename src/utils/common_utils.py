@@ -165,6 +165,7 @@ def apply_trailing_sl(
     """
 
     df = df.copy()
+    df["candleType"] = df.apply(lambda r: "Bull" if r["close"] > r["open"] else "Bear",axis=1)
     df["ts"] = pd.to_datetime(df["ts"])
     df = df.set_index("ts")
 
@@ -198,9 +199,14 @@ def apply_trailing_sl(
             current_sl = high
             df.at[df.index[i], "SL"] = current_sl
             continue
+        # prev_open = df.iloc[i-1]["open"] if i > 0 else open
+        prev_high = df.iloc[i-1]["high"] if i > 0 else high
+        prev_low = df.iloc[i-1]["low"] if i > 0 else low
+        prev_close = df.iloc[i-1]["close"] if i > 0 else close
+        bullish = close > prev_close
+        bearish = close < prev_close
 
         if position == "LONG":
-            prev_close = df.iloc[i-1]["close"] if i > 0 else close
             if low < current_sl:
                 bullish = close > prev_close
                 if not bullish:
@@ -213,9 +219,7 @@ def apply_trailing_sl(
                 current_sl = low
             df.at[df.index[i], "SL"] = current_sl
         elif position == "SHORT":
-            prev_close = df.iloc[i-1]["close"] if i > 0 else close
             if high > current_sl:
-                bearish = close < prev_close
                 if not bearish:
                     df.at[df.index[i], "SL_HIT"] = True
                     df.at[df.index[i], "SL"] = current_sl

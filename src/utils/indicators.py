@@ -1,4 +1,5 @@
-
+import pandas as pd
+import numpy as np
 from collections import deque
 
 def three_horse_crow(candles, swing=3):
@@ -61,12 +62,6 @@ def three_horse_crow(candles, swing=3):
         "sell": sell
     }
 
-import pandas as pd
-
-
-import pandas as pd
-import numpy as np
-
 
 def three_horse_crow_pandas(candles, swing=3):
 
@@ -97,27 +92,11 @@ def three_horse_crow_pandas(candles, swing=3):
     df["res_prev"] = df["res"].shift(1)
     df["sup_prev"] = df["sup"].shift(1)
 
-    # ----------------------------
-    # AVN logic (strict numeric)
-    # ----------------------------
     df["avd"] = 0
     df.loc[df["close"] > df["res_prev"], "avd"] = 1
     df.loc[df["close"] < df["sup_prev"], "avd"] = -1
-
-    df["avn"] = df["avd"].astype("float64")
-    df.loc[df["avn"] == 0, "avn"] = np.nan
-    df["avn"] = df["avn"].ffill()
-    df["avn"] = df["avn"].fillna(0.0)
-    df["avn"] = df["avn"].astype("int8")
-
-    # ----------------------------
-    # TSL vectorized
-    # ----------------------------
+    df["avn"] = (df["avd"].astype("float64").replace(0, np.nan).ffill().fillna(0).astype("int8"))
     df["tsl"] = np.where(df["avn"] == 1, df["sup"], df["res"])
-
-    # ----------------------------
-    # Buy / Sell logic
-    # ----------------------------
     df["prev_close"] = df["close"].shift(1)
     df["prev_tsl"] = df["tsl"].shift(1)
 
@@ -128,5 +107,5 @@ def three_horse_crow_pandas(candles, swing=3):
     df["sell"] = (df["close"] < df["tsl"]) & (
         df["prev_close"] >= df["prev_tsl"]
     )
-
+    df = df.drop(columns=["oi"])
     return df
