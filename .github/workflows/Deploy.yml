@@ -102,8 +102,8 @@ jobs:
             -var="image_tag=${{ needs.build-and-push.outputs.image_tag }}" \
             -out=tfplan
 
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+      # - name: Terraform Apply
+      #   run: terraform apply -auto-approve tfplan
 
       - name: Print Lambda ARN
         run: terraform output lambda_function_arn
