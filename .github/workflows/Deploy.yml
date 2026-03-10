@@ -19,7 +19,6 @@ permissions:
 env:
   AWS_REGION:           ${{ secrets.AWS_REGION }}
   ECR_REPOSITORY:       ${{ secrets.ECR_REPOSITORY_NAME }}
-  LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
   TF_WORKING_DIR:       ./terraform
 
 jobs:

@@ -16,7 +16,7 @@ private_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]
 public_subnet_cidrs  = ["10.0.101.0/24", "10.0.102.0/24"]
 
 # Lambda
-lambda_function_name = "my-lambda-function"
+lambda_function_name = "parallax-signal-generation"
 lambda_memory_size   = 512
 lambda_timeout       = 30
 
