@@ -6,7 +6,7 @@ project_name = "my-lambda-app"
 environment  = "dev"
 
 # ECR
-ecr_repository_name = "parallax"
+ecr_repository_name = "parallax/core"
 image_tag           = "latest"  # Overridden by CI/CD with git SHA
 
 # VPC
