@@ -1,6 +1,6 @@
 output "ecr_repository_url" {
   description = "ECR repository URL to push Docker images"
-  value       = module.ecr.repository_url
+  value       = data.aws_ecr_repository.lambda_repo.repository_url
 }
 
 output "lambda_function_name" {

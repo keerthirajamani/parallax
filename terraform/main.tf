@@ -25,6 +25,10 @@ provider "aws" {
 # ──────────────────────────────────────────────
 # VPC
 # ──────────────────────────────────────────────
+data "aws_ecr_repository" "lambda_repo" {
+  name = var.ecr_repository_name
+}
+
 module "vpc" {
   source               = "./modules/vpc"
   project_name         = var.project_name
@@ -42,7 +46,7 @@ module "lambda" {
   source = "./modules/lambda"
 
   function_name      = var.lambda_function_name
-  image_uri          = "${module.ecr.repository_url}:${var.image_tag}"
+  image_uri          = "${data.aws_ecr_repository.lambda_repo.repository_url}:${var.image_tag}"
   memory_size        = var.lambda_memory_size
   timeout            = var.lambda_timeout
   environment_vars   = var.lambda_environment_vars
