@@ -1,6 +1,3 @@
-# Copy this file to terraform.tfvars and fill in your values
-# terraform.tfvars is gitignored — never commit secrets here
-
 aws_region   = "us-east-1"
 project_name = "my-lambda-app"
 environment  = "dev"

@@ -3,10 +3,6 @@ output "ecr_repository_url" {
   value       = module.ecr.repository_url
 }
 
-output "ecr_repository_name" {
-  value = var.ecr_repository_name
-}
-
 output "lambda_function_name" {
   description = "Lambda function name"
   value       = module.lambda.function_name
@@ -23,6 +19,6 @@ output "vpc_id" {
 }
 
 output "private_subnet_ids" {
-  description = "Private subnet IDs (where Lambda runs)"
+  description = "Private subnet IDs"
   value       = module.vpc.private_subnet_ids
 }

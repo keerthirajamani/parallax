@@ -2,7 +2,8 @@ name: Build & Deploy Parallax Lambda
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       environment:
@@ -10,30 +11,31 @@ on:
         required: true
         default: 'dev'
         type: choice
-        options: [dev, prod]
+        options:
+          - dev
+          - prod
 
 permissions:
   id-token: write
   contents: read
 
 env:
-  AWS_REGION:           ${{ secrets.AWS_REGION }}
-  ECR_REPOSITORY:       ${{ secrets.ECR_REPOSITORY_NAME }}
-  TF_WORKING_DIR:       ./terraform
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
+  TF_WORKING_DIR: ./terraform
 
 jobs:
-  # ──────────────────────────────────────────
-  # 1. Build & push Docker image to ECR
-  # ──────────────────────────────────────────
-  build-and-push:
-    name: Build & Push to ECR
+  deploy:
+    name: Build, Push & Terraform Deploy
     runs-on: ubuntu-latest
-    outputs:
-      image_tag: ${{ steps.meta.outputs.tag }}
-      ecr_registry: ${{ steps.login-ecr.outputs.registry }}
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
 
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
@@ -53,7 +55,8 @@ jobs:
       - name: Build, tag & push image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG:    ${{ steps.meta.outputs.tag }}
+          IMAGE_TAG: ${{ github.sha }}
+        working-directory: ./
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker tag  $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
@@ -61,29 +64,6 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           echo "Pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-
-  # ──────────────────────────────────────────
-  # 2. Terraform plan + apply
-  # ──────────────────────────────────────────
-  terraform-deploy:
-    name: Terraform Deploy
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    environment: ${{ github.event.inputs.environment || 'dev' }}
-
-    defaults:
-      run:
-        working-directory: ${{ env.TF_WORKING_DIR }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -99,11 +79,12 @@ jobs:
       - name: Terraform Plan
         run: |
           terraform plan \
-            -var="image_tag=${{ needs.build-and-push.outputs.image_tag }}" \
+            -var="image_tag=${{ github.sha }}" \
+            -var-file="${{ github.event.inputs.environment || 'dev' }}.tfvars" \
             -out=tfplan
 
-      # - name: Terraform Apply
-      #   run: terraform apply -auto-approve tfplan
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
 
       - name: Print Lambda ARN
         run: terraform output lambda_function_arn
