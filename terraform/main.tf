@@ -50,7 +50,7 @@ module "lambda" {
   security_group_ids = [module.vpc.lambda_security_group_id]
   tags               = local.common_tags
 
-  depends_on = [module.ecr, module.vpc]
+  # depends_on = [module.ecr, module.vpc]
 }
 
 locals {
