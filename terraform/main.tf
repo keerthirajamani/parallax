@@ -16,11 +16,11 @@ provider "aws" {
 # ──────────────────────────────────────────────
 # ECR Repository
 # ──────────────────────────────────────────────
-module "ecr" {
-  source          = "./modules/ecr"
-  repository_name = var.ecr_repository_name
-  tags            = local.common_tags
-}
+# module "ecr" {
+#   source          = "./modules/ecr"
+#   repository_name = var.ecr_repository_name
+#   tags            = local.common_tags
+# }
 
 # ──────────────────────────────────────────────
 # VPC

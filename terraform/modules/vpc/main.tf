@@ -126,7 +126,7 @@ resource "aws_route_table_association" "private" {
 # ──────────────────────────────────────────────
 resource "aws_security_group" "lambda" {
   name        = "${var.project_name}-lambda-sg"
-  description = "Security group for Lambda — outbound only"
+  description = "Security group for Lambda outbound only"
   vpc_id      = aws_vpc.this.id
 
   # No inbound rules — Lambda is invoked via AWS APIs, not direct network calls
