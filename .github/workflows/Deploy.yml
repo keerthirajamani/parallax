@@ -71,16 +71,17 @@ jobs:
           terraform_version: "~1.5"
 
       - name: Terraform Init
-        run: terraform init -backend-config="dev.hcl"
+        # run: terraform init -backend-config="dev.hcl"
+        run: terraform init -backend-config="backend/${{ github.event.inputs.environment || 'dev' }}.hcl"
 
       - name: Terraform Validate
-        run: terraform validate -var-file="${{ github.event.inputs.environment }}.tfvars"
+        run: terraform validate
 
       - name: Terraform Plan
         run: |
           terraform plan \
             -var="image_tag=${{ github.sha }}" \
-            -var-file="${{ github.event.inputs.environment }}.tfvars" \
+            -var-file="${{ github.event.inputs.environment  || 'dev' }}.tfvars" \
             -out=tfplan
 
       - name: Terraform Apply
