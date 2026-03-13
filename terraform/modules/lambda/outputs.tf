@@ -1,11 +1,11 @@
-output "function_name" {
-  value = aws_lambda_function.this.function_name
-}
-
-output "function_arn" {
+output "lambda_function_arn" {
   value = aws_lambda_function.this.arn
 }
 
-output "role_arn" {
-  value = aws_iam_role.lambda.arn
+output "lambda_function_name" {
+  value = aws_lambda_function.this.function_name
+}
+
+output "image_uri" {
+  value = "${data.aws_ecr_repository.repo.repository_url}:${var.image_tag}"
 }
