@@ -47,6 +47,30 @@ resource "aws_iam_role_policy" "ecr_pull" {
   })
 }
 
+# S3 access policy
+resource "aws_iam_role_policy" "s3_access" {
+  name = "s3-access"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket"
+        ]
+        Resource = [
+          "arn:aws:s3:::${var.bucket_name}",
+          "arn:aws:s3:::${var.bucket_name}/*"
+        ]
+      }
+    ]
+  })
+}
+
 # Lambda function using ECR image
 resource "aws_lambda_function" "this" {
   function_name = "${var.lambda_function_name}-${var.environment}"

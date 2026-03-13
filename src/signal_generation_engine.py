@@ -23,11 +23,11 @@ pd.set_option("display.max_columns", None)
 pd.set_option("display.width", None)
 pd.set_option("display.max_colwidth", None)
 
-ACCESS_TOKEN = os.getenv("ACCESS_TOKEN", "")
+ACCESS_TOKEN = ""
 SWING = 3
 BUCKET = 'datahub-market-data-live'
 EQUITY_PATH = 'nse/equity/ind_nifty200list.csv'
-INSTRUMENT_PATH = "/var/task/src/NSE.json"
+INSTRUMENT_PATH = 'upstox/instrument/NSE.json'
 # INSTRUMENT_PATH = "/Users/keerthirajamani/Downloads/sourceCode/parallax/src/NSE.json" # Added for testing.
 
 trading_symbol_metadata = {'NIFTY', 'FINNIFTY', 'BANKNIFTY'}

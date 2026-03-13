@@ -29,3 +29,6 @@ variable "memory_size" {
 variable "environment" {
   default = "dev"
 }
+variable "bucket_name" {
+  default="datahub-market-data-live"
+}
