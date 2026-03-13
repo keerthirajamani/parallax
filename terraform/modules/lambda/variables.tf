@@ -25,3 +25,7 @@ variable "memory_size" {
   default     = 512
   description = "Lambda memory in MB"
 }
+
+variable "environment" {
+  default = "dev"
+}

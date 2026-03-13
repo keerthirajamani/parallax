@@ -23,3 +23,7 @@ variable "lambda_timeout" {
 variable "memory_size" {
   default = 512
 }
+
+variable "environment" {
+  default = "dev"
+}

@@ -49,7 +49,7 @@ resource "aws_iam_role_policy" "ecr_pull" {
 
 # Lambda function using ECR image
 resource "aws_lambda_function" "this" {
-  function_name = var.lambda_function_name
+  function_name = "${var.lambda_function_name}-${var.environment}"
   role          = aws_iam_role.lambda_role.arn
   package_type  = "Image"
   image_uri     = "${data.aws_ecr_repository.repo.repository_url}:${var.image_tag}"
