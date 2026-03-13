@@ -44,15 +44,11 @@ def create_upstox_api(access_token: str):
     configuration = upstox_client.Configuration()
     configuration.access_token = access_token
 
-    api_client = upstox_client.ApiClient(configuration, pool_threads=1)
+    api_client = upstox_client.ApiClient(configuration)
     return upstox_client.HistoryV3Api(api_client)
 
 def load_instruments(TRADING_SYMBOLS, bucket, file_path):
-    data = load_stock_symbols_from_s3(bucket, file_path)
-    print("data", data)
-    # sys.exit()
-    # with open(file_path, "r") as f:   # Lambda must use /tmp
-    #     data = json.load(f)
+    data = load_stock_symbols_from_s3(bucket, file_path)    
 
     instruments = []
     for item in data:
@@ -230,7 +226,13 @@ def apply_trailing_sl(
                     df.at[df.index[i], "SL"] = current_sl
                     position = None
                     current_sl = None
-                    continue
+                    # continue
+                        # ADD THIS ↓
+                    if sell:
+                        position     = "SHORT"
+                        current_sl   = high
+                        # sl_values[i] = current_sl
+                        df.at[df.index[i], "SL"] = current_sl
             else:
                 current_sl = low
             df.at[df.index[i], "SL"] = current_sl
@@ -241,7 +243,13 @@ def apply_trailing_sl(
                     df.at[df.index[i], "SL"] = current_sl
                     position = None
                     current_sl = None
-                    continue
+                    # continue
+                    # ADD THIS ↓
+                    if buy:
+                        position     = "LONG"
+                        current_sl   = low
+                        # sl_values[i] = current_sl
+                        df.at[df.index[i], "SL"] = current_sl
             else:
                 current_sl = high
             df.at[df.index[i], "SL"] = current_sl

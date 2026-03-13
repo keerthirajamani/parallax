@@ -2,7 +2,7 @@ import os
 import logging
 import pandas as pd
 # from datetime import time
-from src.utils.common_utils import (
+from utils.common_utils import (
     get_date_range,
     fetch_candles,
     create_upstox_api,
@@ -10,9 +10,9 @@ from src.utils.common_utils import (
     load_stock_symbols_from_s3,
     apply_trailing_sl
 )
-from src.utils.indicators import three_horse_crow_pandas
+from utils.indicators import three_horse_crow_pandas
 
-from src.utils.webhook_trigger import index_signal_webhook_handler
+from utils.webhook_trigger import index_signal_webhook_handler
 
 
 logger = logging.getLogger()
@@ -94,7 +94,7 @@ def lambda_handler(event, context):
     for symbol, key, exchange_token in instruments:
         try:
             df = process_instrument(api, symbol, key, exchange_token, UNIT, INTERVAL)
-            print(df.tail(20))
+            print(df.tail(50))
             signals = build_signals_from_last_row(df)
             if not signals:
                 print("no_signal symbol=%s", symbol)

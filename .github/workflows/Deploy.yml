@@ -1,91 +1,91 @@
-name: Build & Deploy Parallax Lambda
+# name: Build & Deploy Parallax Lambda
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Target environment'
-        required: true
-        default: 'dev'
-        type: choice
-        options:
-          - dev
-          - prod
+# on:
+#   push:
+#     branches:
+#       - main
+#   workflow_dispatch:
+#     inputs:
+#       environment:
+#         description: 'Target environment'
+#         required: true
+#         default: 'dev'
+#         type: choice
+#         options:
+#           - dev
+#           - prod
 
-permissions:
-  id-token: write
-  contents: read
+# permissions:
+#   id-token: write
+#   contents: read
 
-env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
-  TF_WORKING_DIR: ./terraform
+# env:
+#   AWS_REGION: ${{ secrets.AWS_REGION }}
+#   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
+#   TF_WORKING_DIR: ./terraform
 
-jobs:
-  deploy:
-    name: Build, Push & Terraform Deploy
-    runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'dev' }}
+# jobs:
+#   deploy:
+#     name: Build, Push & Terraform Deploy
+#     runs-on: ubuntu-latest
+#     environment: ${{ github.event.inputs.environment || 'dev' }}
 
-    defaults:
-      run:
-        working-directory: ${{ env.TF_WORKING_DIR }}
+#     defaults:
+#       run:
+#         working-directory: ${{ env.TF_WORKING_DIR }}
 
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout Code
+#         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
+#       - name: Configure AWS credentials
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+#           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+#       - name: Login to Amazon ECR
+#         id: login-ecr
+#         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set image tag
-        id: meta
-        run: echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+#       - name: Set image tag
+#         id: meta
+#         run: echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
 
-      - name: Build, tag & push image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        working-directory: ./
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker tag  $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-                      $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "Pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+#       - name: Build, tag & push image
+#         env:
+#           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+#           IMAGE_TAG: ${{ github.sha }}
+#         working-directory: ./
+#         run: |
+#           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+#           docker tag  $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+#                       $ECR_REGISTRY/$ECR_REPOSITORY:latest
+#           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+#           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+#           echo "Pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "~1.5"
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3
+#         with:
+#           terraform_version: "~1.5"
 
-      - name: Terraform Init
-        # run: terraform init -backend-config="dev.hcl"
-        run: terraform init -backend-config="backend/${{ github.event.inputs.environment || 'dev' }}.hcl"
+#       - name: Terraform Init
+#         # run: terraform init -backend-config="dev.hcl"
+#         run: terraform init -backend-config="backend/${{ github.event.inputs.environment || 'dev' }}.hcl"
 
-      - name: Terraform Validate
-        run: terraform validate
+#       - name: Terraform Validate
+#         run: terraform validate
 
-      - name: Terraform Plan
-        run: |
-          terraform plan \
-            -var="image_tag=${{ github.sha }}" \
-            -var-file="${{ github.event.inputs.environment  || 'dev' }}.tfvars" \
-            -out=tfplan
+#       - name: Terraform Plan
+#         run: |
+#           terraform plan \
+#             -var="image_tag=${{ github.sha }}" \
+#             -var-file="${{ github.event.inputs.environment  || 'dev' }}.tfvars" \
+#             -out=tfplan
 
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+#       - name: Terraform Apply
+#         run: terraform apply -auto-approve tfplan
 
-      - name: Print Lambda ARN
-        run: terraform output lambda_function_arn
+#       - name: Print Lambda ARN
+#         run: terraform output lambda_function_arn
