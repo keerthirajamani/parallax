@@ -48,11 +48,8 @@ def create_upstox_api(access_token: str):
     return upstox_client.HistoryV3Api(api_client)
 
 def load_instruments(TRADING_SYMBOLS, bucket, file_path):
-    data = load_stock_symbols_from_s3(bucket, file_path)
-    print("data", data)
-    # sys.exit()
-    # with open(file_path, "r") as f:   # Lambda must use /tmp
-    #     data = json.load(f)
+    with open(file_path, "r") as f:
+        data = json.load(f)
 
     instruments = []
     for item in data:
@@ -136,25 +133,39 @@ def fetch_candles(api, instrument: str, unit: str, interval: str):
     by_ts = {c[0]: c for c in closed}
     return [by_ts[t] for t in sorted(by_ts.keys())]
 
-def load_stock_symbols_from_s3(bucket: str, key: str) -> str:
-    """
-    Load stock symbols from S3 CSV using pure Python (no pandas).
-    Returns set of symbols.
-    """
-
+def load_stock_symbols_from_s3(bucket: str, key: str) -> set:
     s3 = boto3.client("s3")
 
     response = s3.get_object(Bucket=bucket, Key=key)
     content = response["Body"].read().decode("utf-8")
 
-    csv_reader = csv.DictReader(StringIO(content))
-
     symbols = set()
 
-    for row in csv_reader:
-        symbol = row.get("Symbol")
-        if symbol:
-            symbols.add(symbol.strip())
+    # Detect format
+    if key.endswith(".csv") or response.get("ContentType") == "text/csv":
+        reader = csv.DictReader(StringIO(content))
+        for row in reader:
+            symbol = row.get("Symbol")
+            if symbol:
+                symbols.add(symbol.strip())
+
+    else:  # assume JSON
+        data = json.loads(content)
+
+        # JSON list of objects
+        if isinstance(data, list):
+            for row in data:
+                symbol = row.get("Symbol") or row.get("tradingsymbol")
+                if symbol:
+                    symbols.add(symbol.strip())
+
+        # JSON dict containing list
+        elif isinstance(data, dict):
+            for row in data.values():
+                if isinstance(row, dict):
+                    symbol = row.get("Symbol") or row.get("tradingsymbol")
+                    if symbol:
+                        symbols.add(symbol.strip())
 
     return symbols
 

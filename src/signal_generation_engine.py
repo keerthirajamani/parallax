@@ -27,7 +27,7 @@ ACCESS_TOKEN = ""
 SWING = 3
 BUCKET = 'datahub-market-data-live'
 EQUITY_PATH = 'nse/equity/ind_nifty200list.csv'
-INSTRUMENT_PATH = 'upstox/instrument/NSE.json'
+# INSTRUMENT_PATH = 'upstox/instrument/NSE.json'
 # INSTRUMENT_PATH = "/Users/keerthirajamani/Downloads/sourceCode/parallax/src/NSE.json" # Added for testing.
 
 trading_symbol_metadata = {'NIFTY', 'FINNIFTY', 'BANKNIFTY'}
@@ -81,7 +81,9 @@ def lambda_handler(event, context):
     else:
         TRADING_SYMBOLS = trading_symbol_metadata
 
-    instruments = load_instruments(TRADING_SYMBOLS, BUCKET, INSTRUMENT_PATH)
+    # instruments = load_instruments(TRADING_SYMBOLS, BUCKET, INSTRUMENT_PATH)
+    instruments = [('NIFTY', 'NSE_INDEX|Nifty 50', '26000'), ('BANKNIFTY', 'NSE_INDEX|Nifty Bank', '26009'), ('FINNIFTY', 'NSE_INDEX|Nifty Fin Service', '26037')]
+    print("instruments", instruments)
 
     if not instruments:
         print("NO_SYMBOLS")
@@ -110,5 +112,5 @@ def lambda_handler(event, context):
             logger.exception(f"Failed for {symbol}")
 
 # RUN
-# event = {"MODE": "INDEX", "UNIT": "hours", "INTERVAL": 2}
-# lambda_handler(event, None)
+event = {"MODE": "INDEX", "UNIT": "hours", "INTERVAL": 2}
+lambda_handler(event, None)
