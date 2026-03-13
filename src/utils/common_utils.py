@@ -44,12 +44,15 @@ def create_upstox_api(access_token: str):
     configuration = upstox_client.Configuration()
     configuration.access_token = access_token
 
-    api_client = upstox_client.ApiClient(configuration)
+    api_client = upstox_client.ApiClient(configuration, pool_threads=1)
     return upstox_client.HistoryV3Api(api_client)
 
 def load_instruments(TRADING_SYMBOLS, bucket, file_path):
-    with open(file_path, "r") as f:
-        data = json.load(f)
+    data = load_stock_symbols_from_s3(bucket, file_path)
+    print("data", data)
+    # sys.exit()
+    # with open(file_path, "r") as f:   # Lambda must use /tmp
+    #     data = json.load(f)
 
     instruments = []
     for item in data:
