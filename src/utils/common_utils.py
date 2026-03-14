@@ -44,8 +44,13 @@ def create_upstox_api(access_token: str):
     configuration = upstox_client.Configuration()
     configuration.access_token = access_token
 
+    # upstox_client.rest.pool_threads = 1
     api_client = upstox_client.ApiClient(configuration)
-    api_client.pool_threads = 1   # disable thread pool
+    try:
+        api_client.pool.close()
+        api_client.pool = None
+    except Exception:
+        pass
     return upstox_client.HistoryV3Api(api_client)
 
 def load_instruments(TRADING_SYMBOLS, bucket, file_path):
