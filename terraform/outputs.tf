@@ -1,11 +1,11 @@
 output "lambda_function_arn" {
-  value = module.lambda.lambda_function_arn
+  value = aws_lambda_function.lambda.arn
 }
 
 output "lambda_function_name" {
-  value = module.lambda.lambda_function_name
+  value = aws_lambda_function.lambda.function_name
 }
 
 output "image_uri" {
-  value = module.lambda.image_uri
+  value = aws_lambda_function.lambda.image_uri
 }
