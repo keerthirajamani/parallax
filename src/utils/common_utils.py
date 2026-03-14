@@ -37,20 +37,34 @@ class RateLimiter:
 limiter = RateLimiter(API_CALLS_PER_SEC)
 
 
+import multiprocessing.pool
+import upstox_client
+
 def create_upstox_api(access_token: str):
     """
     Creates and returns Upstox HistoryV3Api instance.
+    Lambda-safe: patches out ThreadPool before ApiClient init.
     """
     configuration = upstox_client.Configuration()
     configuration.access_token = access_token
 
-    # upstox_client.rest.pool_threads = 1
-    api_client = upstox_client.ApiClient(configuration)
+    # Lambda blocks semaphore creation, so stub ThreadPool before ApiClient calls it
+    original_thread_pool = multiprocessing.pool.ThreadPool
+
+    class _NoOpThreadPool:
+        def __init__(self, *args, **kwargs): pass
+        def map(self, fn, iterable): return list(map(fn, iterable))
+        def imap(self, fn, iterable): return map(fn, iterable)
+        def terminate(self): pass
+        def close(self): pass
+        def join(self): pass
+
+    multiprocessing.pool.ThreadPool = _NoOpThreadPool
     try:
-        api_client.pool.close()
-        api_client.pool = None
-    except Exception:
-        pass
+        api_client = upstox_client.ApiClient(configuration)
+    finally:
+        multiprocessing.pool.ThreadPool = original_thread_pool  # always restore
+
     return upstox_client.HistoryV3Api(api_client)
 
 def load_instruments(TRADING_SYMBOLS, bucket, file_path):
