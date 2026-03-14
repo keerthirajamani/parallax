@@ -7,4 +7,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy your function code
 COPY src/ src/
 
-CMD ["src.signal_generation_engine.lambda_handler"]
+# CMD ["src.signal_generation_engine.lambda_handler"]
+CMD ["python", "src/signal_generation_engine.py"]
