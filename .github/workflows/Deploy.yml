@@ -89,3 +89,26 @@
 
 #       - name: Print Lambda ARN
 #         run: terraform output lambda_function_arn
+
+
+# .github/workflows/hourly.yml
+name: Hourly Run
+
+on:
+  schedule:
+    - cron: '*/3 * * * *'  # every 3 minute
+  workflow_dispatch:       # manual trigger from GitHub UI
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t parallax_signal_generator .
+
+      - name: Run Docker image
+        run: docker run --rm parallax_signal_generator

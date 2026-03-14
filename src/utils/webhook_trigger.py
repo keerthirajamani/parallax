@@ -46,19 +46,19 @@ class Config:
 # Keep your map, but PLEASE move these URLs to env/secrets if you consider them sensitive.
 WEBHOOK_MAP: Dict[str, Dict[str, str]] = {
     'NIFTY': {
-        'buy':  'https://www.quantman.trade/external_signal/Z2xQOGhFZVRUTjMzQzd3N0c2eFJ1K2RzaTQwR2NTdTdza3hVVmVxaWVQbzJtNEFpM1F2YjJHbGJTckVXdFJsb2tFSHk0M0dyc2k4WmRBZFRzd3BTeGc9PS0tY0FHeTloTlZ4dk9mLzdNRXFOYkVPQT09--262f947366250e523ec19dfc41ca60b28903d7d1',
-        'sell': 'https://www.quantman.trade/external_signal/QVpzMHFCcUpxaUNITkVqb3Z2UWFHelRoZWhhaXpsWEx4Qi8vUXpDWEZZTEFaT1ZUeXFEY1VTdHR1dEc1WjRsMUYzQXlhTU55Y3pTYVJJVUM1b05mVHc9PS0tQi9pR1FrMDBkbjRTenVFbktQQzZUZz09--93b26b023744b730268c4f1af4c0e6282486b5d3',
-        'sl':'https://www.quantman.trade/external_signal/NUZ2b2RPMUx5OTA2WG9scEZETk5jTHhhdFJYTmZDa1Y1MGhrTzBXSEkxUGh0WUVnT09JVXFOSE5GVDR5V0s3V21PZWVqa0hEZDlFYk0yK2llMFlwc2c9PS0tNXRBZmQyd0xYUjNNWkpaSkFMb2FWQT09--83a9b2994f8dcc814420fff5d8eca1f381da59d9'
+        'buy':  ['https://www.quantman.trade/external_signal/Z2xQOGhFZVRUTjMzQzd3N0c2eFJ1K2RzaTQwR2NTdTdza3hVVmVxaWVQbzJtNEFpM1F2YjJHbGJTckVXdFJsb2tFSHk0M0dyc2k4WmRBZFRzd3BTeGc9PS0tY0FHeTloTlZ4dk9mLzdNRXFOYkVPQT09--262f947366250e523ec19dfc41ca60b28903d7d1'],
+        'sell': ['https://www.quantman.trade/external_signal/QVpzMHFCcUpxaUNITkVqb3Z2UWFHelRoZWhhaXpsWEx4Qi8vUXpDWEZZTEFaT1ZUeXFEY1VTdHR1dEc1WjRsMUYzQXlhTU55Y3pTYVJJVUM1b05mVHc9PS0tQi9pR1FrMDBkbjRTenVFbktQQzZUZz09--93b26b023744b730268c4f1af4c0e6282486b5d3'],
+        'sl':['https://www.quantman.trade/external_signal/NUZ2b2RPMUx5OTA2WG9scEZETk5jTHhhdFJYTmZDa1Y1MGhrTzBXSEkxUGh0WUVnT09JVXFOSE5GVDR5V0s3V21PZWVqa0hEZDlFYk0yK2llMFlwc2c9PS0tNXRBZmQyd0xYUjNNWkpaSkFMb2FWQT09--83a9b2994f8dcc814420fff5d8eca1f381da59d9']
     },
     'FINNIFTY': {
-        'buy':  'https://www.quantman.trade/external_signal/d0JIaXlEclIzR1dPdzJMbGVHbVRXakk1dmVlK254TER4R2FtN3lpZ0xpR1c4alRubWVKNkxSUEI5U09pVmFqSDVkQktZN0ZjWVp3R1N6aDdjcG5uYXc9PS0tYzdRQzU0Qy96RGkvdkN5TVhpS05ldz09--ccf06b6e04325507a4a27d347a1fa45c870ded42',
-        'sell': 'https://www.quantman.trade/external_signal/cVN6aUFOM21VUDEwd0UzbWtuVCtGbmFPUTlJMUVWMkp1YTk1emtwM29mTWZiZGlXUmcrMWI3cGFTeXpsOWZmZms5cFEzNEpkdWdlZDZwVjQxZWVSTXc9PS0tWUZoRTlQVkJ2SklZNlNSTkEvLzVrUT09--93d4cdb4e189afb20e72aae99a3e3141be94ecb0',
-        'sl':'https://www.quantman.trade/external_signal/TWNwRkhKRjB2N05VM1p6VkdZVWdESDRSd2JBdmJaeTdBbXZJVStxTndBOWI1WW1hMDdTZXdQalZkajFjQXNaNjJhcU9lL2x4NFh5dy9TRFk0bzljMFE9PS0tMktVbUwvd2Z1NnNUM0QwdHVISGZZUT09--0bc62cc9e2da869bae998b88462f1bb370cddd6e'
+        'buy':  ['https://www.quantman.trade/external_signal/d0JIaXlEclIzR1dPdzJMbGVHbVRXakk1dmVlK254TER4R2FtN3lpZ0xpR1c4alRubWVKNkxSUEI5U09pVmFqSDVkQktZN0ZjWVp3R1N6aDdjcG5uYXc9PS0tYzdRQzU0Qy96RGkvdkN5TVhpS05ldz09--ccf06b6e04325507a4a27d347a1fa45c870ded42'],
+        'sell': ['https://www.quantman.trade/external_signal/cVN6aUFOM21VUDEwd0UzbWtuVCtGbmFPUTlJMUVWMkp1YTk1emtwM29mTWZiZGlXUmcrMWI3cGFTeXpsOWZmZms5cFEzNEpkdWdlZDZwVjQxZWVSTXc9PS0tWUZoRTlQVkJ2SklZNlNSTkEvLzVrUT09--93d4cdb4e189afb20e72aae99a3e3141be94ecb0'],
+        'sl':['https://www.quantman.trade/external_signal/TWNwRkhKRjB2N05VM1p6VkdZVWdESDRSd2JBdmJaeTdBbXZJVStxTndBOWI1WW1hMDdTZXdQalZkajFjQXNaNjJhcU9lL2x4NFh5dy9TRFk0bzljMFE9PS0tMktVbUwvd2Z1NnNUM0QwdHVISGZZUT09--0bc62cc9e2da869bae998b88462f1bb370cddd6e']
     },
     'BANKNIFTY': {
-        'buy':  'https://www.quantman.trade/external_signal/K2xrZ09xQm44SmVMN04rZDl0Q3U5TGI2L0hodXdLNjNwWFB4c0lHWXNLdjZzSEdPbHJMd2pPMWFVKzE2aUtBdWFITUJ0QjZ6WXRoQlRvUitXQnRqR0E9PS0tVjM1R2pIZm5nUzlwb2J1VHBCY1BJQT09--4e806bc2965b57742d7c717e81be6c006dab6613',
-        'sell': 'https://www.quantman.trade/external_signal/UDdOTWJTZUlMbjY3Vmx2TjFlSy8wYkVmSWZ1UG9KYnMyYlJ2R1I5WVh5K25mQm9wdE9sUm42K3grd3BVQU9NV3h0SW5hTGNkdUcvOUt5NW11dGswN3c9PS0tdU4vejBKTWJKWFBEZ1UvQ3BheFZNdz09--7c59778f8dd89056bbdf0a8cfb6e22a883c028f3',
-        'sl':'https://www.quantman.trade/external_signal/QzBWY1R1eXZXNHNJaHFLU0Z2dGpmQWhodDRaRmNHb2trQmM4ZlJxLzl5dFUycjBvWUo5MDdIQ2lnYXNXTXlhNGlET2kvMDlmd1NjUGFmeU9laXY0S3c9PS0tMzRBV3IyMEtHNm5HdDh2WUdRSHdFZz09--278f0cfd4430ff23684da5026f97713120e436ab'
+        'buy':  ['https://www.quantman.trade/external_signal/K2xrZ09xQm44SmVMN04rZDl0Q3U5TGI2L0hodXdLNjNwWFB4c0lHWXNLdjZzSEdPbHJMd2pPMWFVKzE2aUtBdWFITUJ0QjZ6WXRoQlRvUitXQnRqR0E9PS0tVjM1R2pIZm5nUzlwb2J1VHBCY1BJQT09--4e806bc2965b57742d7c717e81be6c006dab6613'],
+        'sell': ['https://www.quantman.trade/external_signal/UDdOTWJTZUlMbjY3Vmx2TjFlSy8wYkVmSWZ1UG9KYnMyYlJ2R1I5WVh5K25mQm9wdE9sUm42K3grd3BVQU9NV3h0SW5hTGNkdUcvOUt5NW11dGswN3c9PS0tdU4vejBKTWJKWFBEZ1UvQ3BheFZNdz09--7c59778f8dd89056bbdf0a8cfb6e22a883c028f3'],
+        'sl':['https://www.quantman.trade/external_signal/QzBWY1R1eXZXNHNJaHFLU0Z2dGpmQWhodDRaRmNHb2trQmM4ZlJxLzl5dFUycjBvWUo5MDdIQ2lnYXNXTXlhNGlET2kvMDlmd1NjUGFmeU9laXY0S3c9PS0tMzRBV3IyMEtHNm5HdDh2WUdRSHdFZz09--278f0cfd4430ff23684da5026f97713120e436ab']
     }
 }
 
@@ -125,7 +125,7 @@ def trigger_webhook(session: requests.Session, signal: Dict[str, Any], cfg: Conf
         return "INVALID_SIGNAL"
 
     try:
-        webhook_url = get_webhook_url(symbol, side)  # type: ignore[arg-type]
+        webhook_url_list = get_webhook_url(symbol, side)  # type: ignore[arg-type]
 
         payload = {
             "symbol": symbol,
@@ -135,12 +135,12 @@ def trigger_webhook(session: requests.Session, signal: Dict[str, Any], cfg: Conf
             "tsl": signal.get("tsl"),
             "timestamp": signal.get("timestamp"),
         }
-
-        resp = session.post(
-            webhook_url,
-            json=payload,
-            timeout=(cfg.connect_timeout, cfg.read_timeout),
-        )
+        for webhook_url in webhook_url_list:
+            resp = session.post(
+                webhook_url,
+                json=payload,
+                timeout=(cfg.connect_timeout, cfg.read_timeout),
+            )
 
         # Treat non-2xx as failure with context
         if not (200 <= resp.status_code < 300):
