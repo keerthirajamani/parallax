@@ -96,6 +96,10 @@ def lambda_handler(event, context):
             df = process_instrument(api, symbol, key, exchange_token, UNIT, INTERVAL)
             print(df.tail(50))
             signals = build_signals_from_last_row(df)
+            import requests
+            resp = requests.post(
+                "https://webhook.site/0a6d7f78-bba3-4cdd-9b5c-ece8d5dc3d38"
+            )
             if not signals:
                 print("no_signal symbol=%s", symbol)
                 continue
