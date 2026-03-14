@@ -2,7 +2,7 @@ import os
 import logging
 import pandas as pd
 # from datetime import time
-from utils.common_utils import (
+from src.utils.common_utils import (
     get_date_range,
     fetch_candles,
     create_upstox_api,
@@ -10,9 +10,9 @@ from utils.common_utils import (
     load_stock_symbols_from_s3,
     apply_trailing_sl
 )
-from utils.indicators import three_horse_crow_pandas
+from src.utils.indicators import three_horse_crow_pandas
 
-from utils.webhook_trigger import index_signal_webhook_handler
+from src.utils.webhook_trigger import index_signal_webhook_handler
 
 
 logger = logging.getLogger()
