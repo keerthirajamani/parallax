@@ -40,10 +40,17 @@ resource "aws_instance" "signal_engine" {
 
   user_data = <<-EOF
   #!/bin/bash
+  
+  # Set timezone to IST
+  timedatectl set-timezone Asia/Kolkata
 
+  # Update system
   dnf update -y
+  
+  # Install packages
   dnf install -y docker awscli cronie
 
+  # Start Docker
   systemctl enable docker
   systemctl start docker
 
@@ -79,7 +86,8 @@ resource "aws_instance" "signal_engine" {
   /home/ec2-user/run_signal_engine.sh
 
   # Setup cron for ec2-user
-  echo "0 */2 * * * /home/ec2-user/run_signal_engine.sh" > /tmp/cronjob
+  echo "16 11,13,15 * * 1-5 /home/ec2-user/run_signal_engine.sh >> /home/ec2-user/signal_engine.log 2>&1" > /tmp/cronjob
+
   sudo crontab -u ec2-user /tmp/cronjob
 
   EOF
