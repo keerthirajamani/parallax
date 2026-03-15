@@ -19,7 +19,7 @@ variable "lambda_timeout" {
   description = "Timeout in seconds for the webhook Lambda"
 }
 
-variable "memory_size" {
+variable "lambda_memory_size" {
   default     = 512
   description = "Memory size for the webhook Lambda"
 }

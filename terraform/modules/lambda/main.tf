@@ -1,83 +1,20 @@
-# Reference existing ECR repo
-data "aws_ecr_repository" "repo" {
-  name = var.ecr_repo_name
+# 1. Zip the source folder
+data "archive_file" "lambda_zip" {
+  type        = "zip"
+  source_dir  = var.source_dir
+  output_path = "${path.module}/../../webhook_lambda.zip"
 }
 
-# IAM role for Lambda
-resource "aws_iam_role" "lambda_role" {
-  name = "${var.lambda_function_name}-role"
+# 2. Create the Lambda Function using the zip archive
+resource "aws_lambda_function" "lambda" {
+  function_name    = var.function_name
+  role             = var.role_arn
+  handler          = "webhook_trigger.lambda_handler"
+  runtime          = "python3.10"
+  
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action    = "sts:AssumeRole"
-      Effect    = "Allow"
-      Principal = { Service = "lambda.amazonaws.com" }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_logs" {
-  role       = aws_iam_role.lambda_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-resource "aws_iam_role_policy" "ecr_pull" {
-  name = "ecr-pull"
-  role = aws_iam_role.lambda_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
-          "ecr:BatchCheckLayerAvailability"
-        ]
-        Resource = data.aws_ecr_repository.repo.arn
-      },
-      {
-        Effect   = "Allow"
-        Action   = "ecr:GetAuthorizationToken"
-        Resource = "*"
-      }
-    ]
-  })
-}
-
-# S3 access policy
-resource "aws_iam_role_policy" "s3_access" {
-  name = "s3-access"
-  role = aws_iam_role.lambda_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:ListBucket"
-        ]
-        Resource = [
-          "arn:aws:s3:::${var.bucket_name}",
-          "arn:aws:s3:::${var.bucket_name}/*"
-        ]
-      }
-    ]
-  })
-}
-
-# Lambda function using ECR image
-resource "aws_lambda_function" "this" {
-  function_name = "${var.lambda_function_name}-${var.environment}"
-  role          = aws_iam_role.lambda_role.arn
-  package_type  = "Image"
-  image_uri     = "${data.aws_ecr_repository.repo.repository_url}:${var.image_tag}"
-
-  timeout     = var.lambda_timeout
-  memory_size = var.memory_size
+  memory_size      = var.memory_size
+  timeout          = var.timeout
 }
