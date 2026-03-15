@@ -39,7 +39,10 @@ resource "aws_iam_role" "parallax_role" {
       Principal = {
         Service = [
           "lambda.amazonaws.com",
-          "ec2.amazonaws.com"
+          "ec2.amazonaws.com",
+          "ec2:DescribeInstances",
+          "ec2:StopInstances",
+          "ec2:StartInstances"
         ]
       }
       Action = "sts:AssumeRole"
