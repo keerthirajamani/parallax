@@ -5,3 +5,4 @@ variable "vpc_id" {}
 variable "instance_profile" {}
 variable "ecr_repository_url" {}
 variable "image_tag" {}
+variable "key_name" {}

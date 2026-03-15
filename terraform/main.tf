@@ -13,8 +13,15 @@ terraform {
       source  = "hashicorp/archive"
       version = "~> 2.4"
     }
+    tls = {
+    source = "hashicorp/tls"
+    version = "~> 4.0"
+  }
+  
 
   }
+  
+  
 
   backend "s3" {}
 
@@ -22,6 +29,29 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
+}
+resource "tls_private_key" "ec2_key" {
+
+  algorithm = "RSA"
+  rsa_bits  = 4096
+
+}
+resource "aws_key_pair" "parallax_key" {
+
+  key_name   = "parallax-${var.environment}-key"
+
+  public_key = tls_private_key.ec2_key.public_key_openssh
+
+}
+
+resource "local_file" "private_key" {
+
+  filename = "parallax-${var.environment}.pem"
+
+  content  = tls_private_key.ec2_key.private_key_pem
+
+  file_permission = "0400"
+
 }
 
 ###################################
@@ -127,5 +157,5 @@ module "ec2" {
   instance_profile   = aws_iam_instance_profile.ec2_profile.name
   ecr_repository_url = data.aws_ecr_repository.repo.repository_url
   image_tag          = var.image_tag
-
+  key_name = aws_key_pair.parallax_key.key_name
 }

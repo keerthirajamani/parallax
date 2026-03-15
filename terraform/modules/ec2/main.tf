@@ -37,5 +37,11 @@ resource "aws_instance" "signal_engine" {
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
 
   iam_instance_profile = var.instance_profile
+  key_name           = var.key_name
+  tags = {
+    Name        = "parallax-${var.environment}-signal-engine"
+    Environment = var.environment
+    Project     = "parallax"
+  }
 
 }
