@@ -37,16 +37,25 @@ data "aws_iam_role" "lambda_exec_role" {
   name = "parallax-signal-generation-role"
 }
 
-# Get Default VPC
-data "aws_vpc" "default" {
-  default = true
+# Get a VPC (Use provided ID, or fallback to any available)
+data "aws_vpcs" "all" {
+  tags = var.vpc_id != "" ? { "vpc-id" = var.vpc_id } : {}
 }
 
-# Get subnets from the Default VPC
-data "aws_subnets" "default" {
+data "aws_vpc" "selected" {
+  count = var.vpc_id != "" ? 0 : 1
+  id    = tolist(data.aws_vpcs.all.ids)[0]
+}
+
+locals {
+  vpc_id = var.vpc_id != "" ? var.vpc_id : data.aws_vpc.selected[0].id
+}
+
+# Get subnets from the Selected VPC
+data "aws_subnets" "selected" {
   filter {
     name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
+    values = [local.vpc_id]
   }
 }
 
@@ -89,7 +98,7 @@ resource "aws_lambda_function" "webhook_lambda" {
 resource "aws_security_group" "ec2_sg" {
   name        = "parallax-ec2-sg"
   description = "Security group for Parallax Signal Generation EC2 Instance"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = local.vpc_id
 
   # No Inbound rules! We will use SSM Session Manager to connect to it securely.
 
@@ -174,7 +183,7 @@ resource "aws_instance" "signal_engine" {
 
   iam_instance_profile   = aws_iam_instance_profile.ec2_profile.name
   vpc_security_group_ids = [aws_security_group.ec2_sg.id]
-  subnet_id              = data.aws_subnets.default.ids[0]
+  subnet_id              = data.aws_subnets.selected.ids[0]
 
   # This script runs exactly once when the EC2 instance boots up for the very first time.
   # It installs docker, logs into ECR, pulls the image, and runs it!

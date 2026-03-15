@@ -38,6 +38,12 @@ variable "image_tag" {
 }
 
 variable "ec2_instance_type" {
-  default     = "t3.micro"
+  default     = "t3.nano"
   description = "Instance type for the Signal Generation Engine"
+}
+
+variable "vpc_id" {
+  type        = string
+  default     = ""
+  description = "Optional VPC ID to deploy the EC2 instance into. If empty, uses the oldest available VPC."
 }
