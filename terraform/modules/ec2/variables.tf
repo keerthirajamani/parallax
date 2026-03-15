@@ -1,4 +1,5 @@
 variable "environment" {}
+variable "aws_region" {}
 variable "instance_type" {}
 variable "subnet_id" {}
 variable "vpc_id" {}

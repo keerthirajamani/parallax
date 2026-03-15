@@ -119,6 +119,7 @@ data "aws_ecr_repository" "repo" {
 module "ec2" {
   source             = "./modules/ec2"
   environment        = var.environment
+  aws_region         = var.aws_region
   instance_type      = var.ec2_instance_type
   subnet_id          = module.vpc.public_subnet_id
   vpc_id             = module.vpc.vpc_id
