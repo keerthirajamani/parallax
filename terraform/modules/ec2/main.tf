@@ -54,43 +54,49 @@ resource "aws_instance" "signal_engine" {
   }
 
   user_data = <<-EOF
-#!/bin/bash
+  #!/bin/bash
 
-dnf update -y
-dnf install -y docker awscli
+  dnf update -y
+  dnf install -y docker awscli cronie
 
-systemctl enable docker
-systemctl start docker
+  systemctl enable docker
+  systemctl start docker
 
-# Login to ECR
-aws ecr get-login-password --region ${var.aws_region} \
-| docker login \
---username AWS \
---password-stdin ${var.ecr_repository_url}
+  # Enable cron
+  systemctl enable crond
+  systemctl start crond
 
-# Create run script
-cat <<SCRIPT > /home/ec2-user/run_signal_engine.sh
-#!/bin/bash
+  # Login to ECR
+  aws ecr get-login-password --region ${var.aws_region} \
+  | docker login \
+  --username AWS \
+  --password-stdin ${var.ecr_repository_url}
 
-docker pull ${var.ecr_repository_url}:${var.image_tag}
+  # Create run script
+  cat <<SCRIPT > /home/ec2-user/run_signal_engine.sh
+  #!/bin/bash
 
-docker stop signal_engine || true
-docker rm signal_engine || true
+  docker pull ${var.ecr_repository_url}:${var.image_tag}
 
-docker run -d \
---name signal_engine \
-${var.ecr_repository_url}:${var.image_tag}
+  docker stop signal_engine || true
+  docker rm signal_engine || true
 
-SCRIPT
+  docker run -d \
+  --name signal_engine \
+  ${var.ecr_repository_url}:${var.image_tag}
 
-chmod +x /home/ec2-user/run_signal_engine.sh
+  SCRIPT
 
-# Run immediately once
-/home/ec2-user/run_signal_engine.sh
+  chmod +x /home/ec2-user/run_signal_engine.sh
+  chown ec2-user:ec2-user /home/ec2-user/run_signal_engine.sh
 
-# Schedule every 2 hours
-(crontab -l 2>/dev/null; echo "0 */2 * * * /home/ec2-user/run_signal_engine.sh") | crontab -
+  # Run immediately once
+  /home/ec2-user/run_signal_engine.sh
 
-EOF
+  # Setup cron for ec2-user
+  echo "0 */2 * * * /home/ec2-user/run_signal_engine.sh" > /tmp/cronjob
+  sudo crontab -u ec2-user /tmp/cronjob
+
+  EOF
 
 }
