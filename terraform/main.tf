@@ -1,58 +1,131 @@
 terraform {
+
   required_version = ">= 1.5.0"
 
   required_providers {
+
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.4"
+    }
+
   }
 
-  backend "s3" {
-    bucket = "parallax-terraform-state-bucket"
-    key    = "parallax/terraform.tfstate"
-    region = "us-east-1"
-  }
+  backend "s3" {}
+
 }
 
 provider "aws" {
   region = var.aws_region
 }
 
-# ==============================================================================
-# DATA SOURCES & EXISTING INFRASTRUCTURE
-# ==============================================================================
+###################################
+# SHARED IAM ROLE
+###################################
 
-# Get existing IAM role for Lambda
-data "aws_iam_role" "lambda_exec_role" {
-  name = "parallax-signal-generation-role"
+resource "aws_iam_role" "parallax_role" {
+
+  name = "parallax-${var.environment}-role"
+
+  assume_role_policy = jsonencode({
+
+    Version = "2012-10-17"
+
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = [
+          "lambda.amazonaws.com",
+          "ec2.amazonaws.com"
+        ]
+      }
+      Action = "sts:AssumeRole"
+    }]
+
+  })
+
 }
 
-# ==============================================================================
-# MODULES
-# ==============================================================================
+resource "aws_iam_role_policy_attachment" "lambda_logs" {
+
+  role       = aws_iam_role.parallax_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+
+}
+
+resource "aws_iam_role_policy_attachment" "ssm" {
+
+  role       = aws_iam_role.parallax_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+
+}
+
+resource "aws_iam_role_policy_attachment" "ecr" {
+
+  role       = aws_iam_role.parallax_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+
+}
+
+resource "aws_iam_instance_profile" "ec2_profile" {
+
+  name = "parallax-${var.environment}-profile"
+  role = aws_iam_role.parallax_role.name
+
+}
+
+###################################
+# VPC MODULE
+###################################
 
 module "vpc" {
+
   source = "./modules/vpc"
+
+  environment        = var.environment
+  vpc_cidr           = var.vpc_cidr
+  public_subnet_cidr = var.public_subnet_cidr
+  availability_zone  = var.availability_zone
+
 }
 
+###################################
+# LAMBDA MODULE
+###################################
+
 module "lambda" {
-  source        = "./modules/lambda"
-  
-  function_name = var.lambda_function_name
-  role_arn      = data.aws_iam_role.lambda_exec_role.arn
-  memory_size   = var.lambda_memory_size
-  timeout       = var.lambda_timeout
-  source_dir    = "${path.module}/../lambda_handlers"
+  source               = "./modules/lambda"
+  lambda_function_name = var.webhook_lambda_function_name
+  lambda_memory_size   = var.webhook_lambda_memory_size
+  lambda_timeout       = var.webhook_lambda_timeout
+  role_arn             = aws_iam_role.parallax_role.arn
+  environment          = var.environment
+
+}
+
+###################################
+# EC2 MODULE
+###################################
+
+data "aws_ecr_repository" "repo" {
+
+  name = var.ecr_repo_name
+
 }
 
 module "ec2" {
-  source = "./modules/ec2"
-  
-  vpc_id            = module.vpc.vpc_id
-  subnet_id         = module.vpc.public_subnet_id
-  ec2_instance_type = var.ec2_instance_type
-  ecr_repo_name     = var.ecr_repo_name
-  image_tag         = var.image_tag
-  lambda_invoke_arn = module.lambda.function_arn
+  source             = "./modules/ec2"
+  environment        = var.environment
+  instance_type      = var.ec2_instance_type
+  subnet_id          = module.vpc.public_subnet_id
+  vpc_id             = module.vpc.vpc_id
+  instance_profile   = aws_iam_instance_profile.ec2_profile.name
+  ecr_repository_url = data.aws_ecr_repository.repo.repository_url
+  image_tag          = var.image_tag
+
 }

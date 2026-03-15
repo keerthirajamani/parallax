@@ -1,7 +1,5 @@
-output "function_arn" {
-  value = aws_lambda_function.lambda.arn
-}
+output "lambda_name" {
 
-output "function_name" {
-  value = aws_lambda_function.lambda.function_name
+  value = aws_lambda_function.webhook.function_name
+
 }
