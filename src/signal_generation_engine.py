@@ -1,4 +1,4 @@
-import os
+import os, boto3, json
 import logging
 import pandas as pd
 # from datetime import time
@@ -12,7 +12,7 @@ from src.utils.common_utils import (
 )
 from src.utils.indicators import three_horse_crow_pandas
 
-from src.utils.webhook_trigger import index_signal_webhook_handler
+# from lambda_handlers.webhook_trigger import lambda_handler
 
 
 logger = logging.getLogger()
@@ -45,7 +45,7 @@ def build_signals_from_last_row(df):
     if df.empty:
         return []
 
-    last = df.iloc[-1]
+    last = df.iloc[-9]
     signals = []
 
     base_payload = {
@@ -67,7 +67,16 @@ def build_signals_from_last_row(df):
 
     return signals
 
-def lambda_handler(event, context):
+def trigger_lambda(event_payload):
+    lambda_client = boto3.client("lambda", region_name="us-east-1")
+    response = lambda_client.invoke(
+        FunctionName="webhook-trigger-lambda",  # your lambda name
+        InvocationType="Event",  # async
+        Payload=json.dumps(event_payload)
+    )
+    return response
+
+def signal_generator(event, context):
     MODE = event.get("MODE")
     UNIT = event.get("UNIT")
     INTERVAL = str(event.get("INTERVAL"))
@@ -96,10 +105,7 @@ def lambda_handler(event, context):
             df = process_instrument(api, symbol, key, exchange_token, UNIT, INTERVAL)
             print(df.tail(50))
             signals = build_signals_from_last_row(df)
-            # import requests
-            # resp = requests.post(
-            #     "https://webhook.site/0a6d7f78-bba3-4cdd-9b5c-ece8d5dc3d38"
-            # )
+            
             if not signals:
                 print("no_signal symbol=%s", symbol)
                 continue
@@ -109,8 +115,7 @@ def lambda_handler(event, context):
                 "mode": "INDEX",
                 "signals": signals,
             }
-
-            result = index_signal_webhook_handler(event_payload, None)
+            trigger_lambda(event_payload, None)
 
         except Exception:
             logger.exception(f"Failed for {symbol}")
@@ -118,4 +123,4 @@ def lambda_handler(event, context):
 # RUN
 if __name__ == "__main__":
     event = {"MODE": "INDEX", "UNIT": "hours", "INTERVAL": 2}
-    lambda_handler(event, None)
+    signal_generator(event, None)

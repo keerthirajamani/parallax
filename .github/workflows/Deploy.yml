@@ -81,34 +81,14 @@ jobs:
         run: |
           terraform plan \
             -var="image_tag=${{ github.sha }}" \
-            -var-file="${{ github.event.inputs.environment  || 'dev' }}.tfvars" \
             -out=tfplan
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
 
-      - name: Print Lambda ARN
-        run: terraform output lambda_function_arn
-
-
-# .github/workflows/hourly.yml
-# name: Hourly Run
-
-# on:
-#   schedule:
-#     - cron: '*/3 * * * *'  # every 3 minute
-#   workflow_dispatch:       # manual trigger from GitHub UI
-
-# jobs:
-#   run:
-#     runs-on: ubuntu-latest
-
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
-
-#       - name: Build Docker image
-#         run: docker build -t parallax_signal_generator .
-
-#       - name: Run Docker image
-#         run: docker run --rm parallax_signal_generator
+      - name: Print Deployment Outputs
+        run: |
+          echo "Webhook Lambda ARN: $(terraform output -raw lambda_function_arn)"
+          echo "Webhook Lambda Name: $(terraform output -raw lambda_function_name)"
+          echo "Signal Engine EC2 ID: $(terraform output -raw ec2_instance_id)"
+          echo "Signal Engine EC2 IP: $(terraform output -raw ec2_public_ip)"

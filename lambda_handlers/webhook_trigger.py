@@ -181,7 +181,7 @@ def process_signal(signal: Dict[str, Any], mode: str, cfg: Config) -> Dict[str, 
     return {"symbol": symbol, "side": side, "status": "status"}
 
 
-def index_signal_webhook_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     # Safe logging: don't log massive payloads fully
     print(f"event_received {event}")
     mode = event.get("mode")
