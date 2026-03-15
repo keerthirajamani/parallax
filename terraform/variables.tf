@@ -13,3 +13,4 @@ variable "ec2_instance_type" {}
 variable "webhook_lambda_function_name" {}
 variable "webhook_lambda_memory_size" {}
 variable "webhook_lambda_timeout" {}
+variable "key_name"{default = "parallax-key-dev" }
