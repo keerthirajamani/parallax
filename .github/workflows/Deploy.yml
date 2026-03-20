@@ -22,17 +22,12 @@ permissions:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
-  TF_WORKING_DIR: ./terraform
 
 jobs:
   deploy:
     name: Build, Push & Terraform Deploy
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'dev' }}
-
-    defaults:
-      run:
-        working-directory: ${{ env.TF_WORKING_DIR }}
 
     steps:
       - name: Checkout Code
@@ -65,31 +60,11 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           echo "Pushed: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "~1.5"
-
-      - name: Terraform Init
-        # run: terraform init -backend-config="backend/dev.hcl"
-        run: terraform init -backend-config="backend/${{ github.event.inputs.environment || 'dev' }}.hcl"
-
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Terraform Plan
+      - name: Update Lambda Function Code
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
         run: |
-          terraform plan \
-            -var-file="${{ github.event.inputs.environment || 'dev' }}.tfvars" \
-            -var="image_tag=${{ github.sha }}" \
-            -out=tfplan
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
-
-      - name: Print Deployment Outputs
-        run: |
-          echo "Webhook Lambda ARN: $(terraform output -raw lambda_function_arn)"
-          echo "Webhook Lambda Name: $(terraform output -raw lambda_function_name)"
-          echo "Signal Engine EC2 ID: $(terraform output -raw ec2_instance_id)"
-          echo "Signal Engine EC2 IP: $(terraform output -raw ec2_public_ip)"
+          aws lambda update-function-code \
+            --function-name parallax-signal-lambda \
+            --image-uri $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
