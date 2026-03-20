@@ -79,8 +79,8 @@ def lambda_handler(event, context):
         signals = get_nifty_2hr(Symbol, unit, interval)
         if not signals:
             print("No Signal  for symbol ", Symbol)
-            print()
-            print()
+            print("")
+            print("")
             continue
         event_payload = {
             "mode": "INDEX",
