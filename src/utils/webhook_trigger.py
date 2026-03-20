@@ -3,7 +3,7 @@ import json
 import time
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, List, Literal, Optional
 from zoneinfo import ZoneInfo
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -29,7 +29,7 @@ Side = Literal["buy", "sell", "sl"]
 @dataclass(frozen=True)
 class Config:
     # Staleness window in seconds (trading safety)
-    stale_seconds: int = int(os.getenv("STALE_SECONDS", "900000000000000000000000"))
+    stale_seconds: int = int(os.getenv("STALE_SECONDS", "300"))
 
     # Concurrency
     max_workers: int = int(os.getenv("MAX_WEBHOOK_WORKERS", "10"))
@@ -45,17 +45,17 @@ class Config:
 
 # Keep your map, but PLEASE move these URLs to env/secrets if you consider them sensitive.
 WEBHOOK_MAP: Dict[str, Dict[str, str]] = {
-    'NIFTY': {
+    'nifty50': {
         'buy':  ['https://www.quantman.trade/external_signal/Z2xQOGhFZVRUTjMzQzd3N0c2eFJ1K2RzaTQwR2NTdTdza3hVVmVxaWVQbzJtNEFpM1F2YjJHbGJTckVXdFJsb2tFSHk0M0dyc2k4WmRBZFRzd3BTeGc9PS0tY0FHeTloTlZ4dk9mLzdNRXFOYkVPQT09--262f947366250e523ec19dfc41ca60b28903d7d1'],
         'sell': ['https://www.quantman.trade/external_signal/QVpzMHFCcUpxaUNITkVqb3Z2UWFHelRoZWhhaXpsWEx4Qi8vUXpDWEZZTEFaT1ZUeXFEY1VTdHR1dEc1WjRsMUYzQXlhTU55Y3pTYVJJVUM1b05mVHc9PS0tQi9pR1FrMDBkbjRTenVFbktQQzZUZz09--93b26b023744b730268c4f1af4c0e6282486b5d3'],
         'sl':['https://www.quantman.trade/external_signal/NUZ2b2RPMUx5OTA2WG9scEZETk5jTHhhdFJYTmZDa1Y1MGhrTzBXSEkxUGh0WUVnT09JVXFOSE5GVDR5V0s3V21PZWVqa0hEZDlFYk0yK2llMFlwc2c9PS0tNXRBZmQyd0xYUjNNWkpaSkFMb2FWQT09--83a9b2994f8dcc814420fff5d8eca1f381da59d9']
     },
-    'FINNIFTY': {
+    'finnifty': {
         'buy':  ['https://www.quantman.trade/external_signal/d0JIaXlEclIzR1dPdzJMbGVHbVRXakk1dmVlK254TER4R2FtN3lpZ0xpR1c4alRubWVKNkxSUEI5U09pVmFqSDVkQktZN0ZjWVp3R1N6aDdjcG5uYXc9PS0tYzdRQzU0Qy96RGkvdkN5TVhpS05ldz09--ccf06b6e04325507a4a27d347a1fa45c870ded42'],
         'sell': ['https://www.quantman.trade/external_signal/cVN6aUFOM21VUDEwd0UzbWtuVCtGbmFPUTlJMUVWMkp1YTk1emtwM29mTWZiZGlXUmcrMWI3cGFTeXpsOWZmZms5cFEzNEpkdWdlZDZwVjQxZWVSTXc9PS0tWUZoRTlQVkJ2SklZNlNSTkEvLzVrUT09--93d4cdb4e189afb20e72aae99a3e3141be94ecb0'],
         'sl':['https://www.quantman.trade/external_signal/TWNwRkhKRjB2N05VM1p6VkdZVWdESDRSd2JBdmJaeTdBbXZJVStxTndBOWI1WW1hMDdTZXdQalZkajFjQXNaNjJhcU9lL2x4NFh5dy9TRFk0bzljMFE9PS0tMktVbUwvd2Z1NnNUM0QwdHVISGZZUT09--0bc62cc9e2da869bae998b88462f1bb370cddd6e']
     },
-    'BANKNIFTY': {
+    'banknifty': {
         'buy':  ['https://www.quantman.trade/external_signal/K2xrZ09xQm44SmVMN04rZDl0Q3U5TGI2L0hodXdLNjNwWFB4c0lHWXNLdjZzSEdPbHJMd2pPMWFVKzE2aUtBdWFITUJ0QjZ6WXRoQlRvUitXQnRqR0E9PS0tVjM1R2pIZm5nUzlwb2J1VHBCY1BJQT09--4e806bc2965b57742d7c717e81be6c006dab6613'],
         'sell': ['https://www.quantman.trade/external_signal/UDdOTWJTZUlMbjY3Vmx2TjFlSy8wYkVmSWZ1UG9KYnMyYlJ2R1I5WVh5K25mQm9wdE9sUm42K3grd3BVQU9NV3h0SW5hTGNkdUcvOUt5NW11dGswN3c9PS0tdU4vejBKTWJKWFBEZ1UvQ3BheFZNdz09--7c59778f8dd89056bbdf0a8cfb6e22a883c028f3'],
         'sl':['https://www.quantman.trade/external_signal/QzBWY1R1eXZXNHNJaHFLU0Z2dGpmQWhodDRaRmNHb2trQmM4ZlJxLzl5dFUycjBvWUo5MDdIQ2lnYXNXTXlhNGlET2kvMDlmd1NjUGFmeU9laXY0S3c9PS0tMzRBV3IyMEtHNm5HdDh2WUdRSHdFZz09--278f0cfd4430ff23684da5026f97713120e436ab']
@@ -91,7 +91,7 @@ SESSION = build_session(CFG)
 
 def get_webhook_url(symbol: str, side: Side) -> str:
     try:
-        print(f"webhook url is :: {WEBHOOK_MAP[symbol][side]}")
+        # print(f"webhook url is :: {WEBHOOK_MAP[symbol][side]}")
         return WEBHOOK_MAP[symbol][side]
     except KeyError as e:
         raise ValueError(f"Webhook URL not found for symbol={symbol} side={side}") from e
@@ -109,11 +109,28 @@ def parse_signal_timestamp(ts: str) -> datetime:
     return dt
 
 
-def is_stale(signal_ts: str, cfg: Config) -> bool:
+def is_stale(signal_ts: str, cfg: Config, unit, interval) -> bool:
     dt = parse_signal_timestamp(signal_ts)
+    # print("dt", dt)
     now = datetime.now(IST)
-    age = (now - dt.astimezone(IST)).total_seconds()
-    return age > cfg.stale_seconds
+    if unit == "minutes":
+        interval_delta = timedelta(minutes=interval)
+    elif unit == "hours":
+        interval_delta = timedelta(hours=interval)
+    elif unit == "days":
+        interval_delta = timedelta(days=interval)
+    else:
+        raise ValueError("Unsupported interval unit")
+    # print("interval_delta", interval_delta)
+    candle_close = dt + interval_delta
+    # print("candle_close", candle_close)
+    expiry_time = candle_close + timedelta(seconds=cfg.stale_seconds)
+    print("expiry_time", expiry_time)
+    # print("Current Time", now)
+
+    # age = (now - dt.astimezone(IST)).total_seconds()
+    # return age > cfg.stale_seconds
+    return now > expiry_time
 
 
 def trigger_webhook(session: requests.Session, signal: Dict[str, Any], cfg: Config) -> str:
@@ -157,7 +174,8 @@ def trigger_webhook(session: requests.Session, signal: Dict[str, Any], cfg: Conf
         return "WEBHOOK_FAILED"
 
 
-def process_signal(signal: Dict[str, Any], mode: str, cfg: Config) -> Dict[str, Any]:
+def process_signal(signal: Dict[str, Any], mode: str, cfg: Config, unit, interval) -> Dict[str, Any]:
+    print("processing for ", signal)
     symbol = signal.get("symbol")
     side = signal.get("signal_type")
     ts = signal.get("timestamp")
@@ -170,22 +188,22 @@ def process_signal(signal: Dict[str, Any], mode: str, cfg: Config) -> Dict[str, 
 
     # Stale check (trading safety)
     try:
-        if is_stale(ts, cfg):
+        if is_stale(ts, cfg, unit, interval):
             return {"symbol": symbol, "side": side, "status": "STALE_SKIPPED"}
     except Exception:
         logger.exception("timestamp_parse_failed symbol=%s side=%s ts=%s", symbol, side, ts)
         return {"symbol": symbol, "side": side, "status": "BAD_TIMESTAMP"}
 
-    # status = trigger_webhook(SESSION, signal, cfg)
+    status = trigger_webhook(SESSION, signal, cfg)
     # return {"symbol": symbol, "side": side, "status": status}
     return {"symbol": symbol, "side": side, "status": "status"}
 
 
-def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
-    # Safe logging: don't log massive payloads fully
-    print(f"event_received {event}")
+def webhook_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     mode = event.get("mode")
     signals = event.get("signals") or []
+    unit = event.get("unit")
+    interval =  event.get("interval")
 
     if not signals:
         return {"status": "NO_SIGNAL", "processed_count": 0, "results": [], "timestamp": datetime.now(IST).isoformat()}
@@ -195,7 +213,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     results: List[Dict[str, Any]] = []
 
     with ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = [executor.submit(process_signal, s, mode, CFG) for s in signals]
+        futures = [executor.submit(process_signal, s, mode, CFG, unit, interval) for s in signals]
 
         for fut in as_completed(futures):
             try:

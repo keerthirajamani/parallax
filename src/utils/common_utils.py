@@ -4,12 +4,11 @@ from zoneinfo import ZoneInfo
 from datetime import time as date_time_time
 import time
 import json
-import upstox_client
 import boto3
 import csv
 import pandas as pd
 from io import StringIO
-import logging
+import logging, requests
 
 
 logger = logging.getLogger()
@@ -18,54 +17,6 @@ logger.setLevel(logging.INFO)
 
 IST = ZoneInfo("Asia/Kolkata")
 API_CALLS_PER_SEC = 10
-
-
-class RateLimiter:
-    def __init__(self, calls_per_sec: float):
-        self.min_interval = 1.0 / max(calls_per_sec, 0.001)
-        self._lock = threading.Lock()
-        self._next_time = time.monotonic()
-
-    def wait(self):
-        with self._lock:
-            now = time.monotonic()
-            if now < self._next_time:
-                time.sleep(self._next_time - now)
-            self._next_time = time.monotonic() + self.min_interval
-
-
-limiter = RateLimiter(API_CALLS_PER_SEC)
-
-
-import multiprocessing.pool
-import upstox_client
-
-def create_upstox_api(access_token: str):
-    """
-    Creates and returns Upstox HistoryV3Api instance.
-    Lambda-safe: patches out ThreadPool before ApiClient init.
-    """
-    configuration = upstox_client.Configuration()
-    configuration.access_token = access_token
-
-    # Lambda blocks semaphore creation, so stub ThreadPool before ApiClient calls it
-    original_thread_pool = multiprocessing.pool.ThreadPool
-
-    class _NoOpThreadPool:
-        def __init__(self, *args, **kwargs): pass
-        def map(self, fn, iterable): return list(map(fn, iterable))
-        def imap(self, fn, iterable): return map(fn, iterable)
-        def terminate(self): pass
-        def close(self): pass
-        def join(self): pass
-
-    multiprocessing.pool.ThreadPool = _NoOpThreadPool
-    try:
-        api_client = upstox_client.ApiClient(configuration)
-    finally:
-        multiprocessing.pool.ThreadPool = original_thread_pool  # always restore
-
-    return upstox_client.HistoryV3Api(api_client)
 
 def load_instruments(TRADING_SYMBOLS, bucket, file_path):
     data = load_stock_symbols_from_s3(bucket, file_path)    
@@ -106,28 +57,50 @@ def get_date_range(unit: str, interval: str):
         start_date = datetime(2023, 1, 1)
 
     return start_date, end_date
+HEADERS = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Authorization': 'Bearer {your_access_token}'
+}
 
+def get_historical(instrument, from_date, to_date, unit, interval):
+    url = f"https://api.upstox.com/v3/historical-candle/{instrument}/{unit}/{interval}/{to_date}/{from_date}"
+    response = requests.get(url, headers=HEADERS)
+    if response.status_code == 200:
+        return response.json()["data"]["candles"]
+    else:
+        print(f"Historical Error: {response.status_code} - {response.text}")
+        return []
 
-def fetch_candles(api, instrument: str, unit: str, interval: str):
+def get_intraday(instrument, unit, interval):
+    url = f"https://api.upstox.com/v3/historical-candle/intraday/{instrument}/{unit}/{interval}"
+    response = requests.get(url, headers=HEADERS)
+    if response.status_code == 200:
+        return response.json()["data"]["candles"]
+    else:
+        print(f"Intraday Error: {response.status_code} - {response.text}")
+        return []
+    
+def fetch_candles(instrument: str, unit: str, interval: str):
     start_date, end_date = get_date_range(unit, interval)
-
-    # if unit not in ("minutes"):
-    limiter.wait()
-    resp = api.get_historical_candle_data1(
+    print(f"Fetching historical: {start_date} → {end_date}")
+    
+    resp = get_historical(
         instrument,
-        unit,
-        interval,
-        end_date.strftime("%Y-%m-%d"),
         start_date.strftime("%Y-%m-%d"),
+        end_date.strftime("%Y-%m-%d"),
+        unit,
+        interval
     )
-    hist = resp.data.candles if resp and resp.data else []
+    # print("resp", resp)
+    hist = resp#.data.candles if resp and resp.data else []
 
     if unit in ("minutes", "hours", "days"):
-        limiter.wait()
-        resp_i = api.get_intra_day_candle_data(instrument, unit, interval)
-        intra = resp_i.data.candles if resp_i and resp_i.data else []
+        print("Fetching intraday (today)...")
+        resp_i = get_intraday(instrument, unit, interval)
+        # print("resp_i", resp_i)
+        intra = resp_i#.data.candles if resp_i and resp_i.data else []
         candles = hist + intra
-        # print("intraday candle completed")
     else:
         candles = hist
 
@@ -275,78 +248,3 @@ def apply_trailing_sl(
             df.at[df.index[i], "SL"] = current_sl
 
     return df
-
-
-# def calculate_dema(df, period, price_col="Close", out_col="DEMA"):
-#     df = df.sort_index().copy()
-#     ema1 = df[price_col].ewm(span=period, adjust=False).mean()
-#     ema2 = ema1.ewm(span=period, adjust=False).mean()
-#     df[out_col] = 2 * ema1 - ema2
-#     return df
-
-# def calculate_tema(df, period, price_col="Close", out_col="TEMA"):
-#     df = df.sort_index().copy()
-#     ema1 = df[price_col].ewm(span=period, adjust=False).mean()
-#     ema2 = ema1.ewm(span=period, adjust=False).mean()
-#     ema3 = ema2.ewm(span=period, adjust=False).mean()
-#     df[out_col] = 3 * ema1 - 3 * ema2 + ema3
-#     return df
-
-# def ema_buy_sell_condition(condition_df_ema):
-#     print("condition_df_ema", condition_df_ema)
-#     condition_df_ema = condition_df_ema.copy()
-#     condition_df_ema["emasignalcode"] = 0
-
-#     buy_crossover = (
-#         (condition_df_ema["DEMA"] > condition_df_ema["TEMA"]) 
-#         & (condition_df_ema["DEMA"].shift(1) <= condition_df_ema["TEMA"].shift(1)) 
-#         & (condition_df_ema["DEMA"].shift(2) <= condition_df_ema["TEMA"].shift(2))
-#         )
-#     condition_df_ema.loc[buy_crossover, "emasignalcode"] = 1
-
-#     sell_crossover = (
-#         (condition_df_ema["DEMA"] < condition_df_ema["TEMA"]) 
-#         & (condition_df_ema["DEMA"].shift(1) >= condition_df_ema["TEMA"].shift(1)) 
-#         & (condition_df_ema["DEMA"].shift(2) >= condition_df_ema["TEMA"].shift(2))
-#         )
-#     condition_df_ema.loc[sell_crossover, "emasignalcode"] = -1
-
-#     still_buy_crossover = (
-#         (condition_df_ema["DEMA"] > condition_df_ema["TEMA"]) 
-#         & (condition_df_ema["DEMA"].shift(1) > condition_df_ema["TEMA"].shift(1))
-#         # & (condition_df_ema["DEMA"].shift(2) > condition_df_ema["TEMA"].shift(2))
-#         )
-#     condition_df_ema.loc[still_buy_crossover, "emasignalcode"] = 11
-    
-  
-#     still_sell_crossover = (
-#         (condition_df_ema["DEMA"] < condition_df_ema["TEMA"]) 
-#         & (condition_df_ema["DEMA"].shift(1) < condition_df_ema["TEMA"].shift(1))
-#         # & (condition_df_ema["DEMA"].shift(2) < condition_df_ema["TEMA"].shift(2))
-#         )
-#     condition_df_ema.loc[still_sell_crossover, "emasignalcode"] = -11
-#     return condition_df_ema
-
-# def trigger_async(
-#     func: Callable,
-#     *args: Any,
-#     daemon: bool = True,
-#     thread_name: str | None = None,
-#     **kwargs: Any
-# ) -> None:
-#     """
-#     Run any function asynchronously in a background thread.
-#     """
-
-#     def wrapper():
-#         try:
-#             func(*args, **kwargs)
-#         except Exception:
-#             logger.exception("Async function execution failed")
-
-#     t = threading.Thread(
-#         target=wrapper,
-#         daemon=daemon,
-#         name=thread_name or f"async-{func.__name__}",
-#     )
-#     t.start()

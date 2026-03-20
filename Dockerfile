@@ -1,10 +1,15 @@
-FROM python:3.10-slim
+FROM public.ecr.aws/lambda/python:3.10
+
+WORKDIR /var/task
 
 # Copy requirements and install dependencies
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# RUN pip install --upgrade pip \
+#     && pip install -r requirements.txt -t .
+RUN pip install --upgrade pip \
+    && pip install -r requirements.txt
 
 # Copy your function code
-COPY src src
+COPY src/ src/
 
-CMD ["python", "-m", "src.signal_generation_engine"]
+CMD ["src.signal_generation_engine.lambda_handler"]
