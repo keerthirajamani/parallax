@@ -50,13 +50,14 @@ jobs:
       - name: Build, tag & push image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ steps.meta.outputs.tag }}
         working-directory: ./
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
-          docker tag  $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "Pushed: $ECR_REGISTRY/$ECR_REPOSITORY:latest"
-
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "Pushed: latest and $IMAGE_TAG"
       - name: Update Lambda Function Code
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
