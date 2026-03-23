@@ -90,8 +90,8 @@ def lambda_handler(event, context):
             }
         print("Event Payload is ",event_payload)
         
-        # webhoook_results.append(webhook_handler(event_payload, None))
-        webhoook_results.append(event_payload)
+        webhoook_results.append(webhook_handler(event_payload, None))
+        # webhoook_results.append(event_payload)
     print("Webhook results", webhoook_results)
     return True
 # event = {"unit":"hours", "interval":2}
