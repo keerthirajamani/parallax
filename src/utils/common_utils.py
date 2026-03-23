@@ -214,7 +214,7 @@ def apply_trailing_sl(
         if position == "LONG":
             if low < current_sl:
                 bullish = close > prev_close
-                if not bullish and close <= prev_low:
+                if not bullish and close <= current_sl:
                     df.at[df.index[i], "SL_HIT"] = True
                     df.at[df.index[i], "SL"] = current_sl
                     position = None
@@ -232,7 +232,7 @@ def apply_trailing_sl(
             df.at[df.index[i], "SL"] = current_sl
         elif position == "SHORT":
             if high > current_sl:
-                if not bearish and close >= prev_high:
+                if not bearish and close >= current_sl:
                     df.at[df.index[i], "SL_HIT"] = True
                     df.at[df.index[i], "SL"] = current_sl
                     position = None
