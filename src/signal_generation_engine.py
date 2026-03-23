@@ -27,7 +27,7 @@ def get_nifty_2hr(Symbol, unit, interval):
     df = three_horse_crow_pandas(all_candles, 3)
     df = apply_trailing_sl(df)
     df["symbol"] = Symbol
-    # print(df.tail(10))
+    print(df.tail(50))
     signals = build_signals_from_last_row(df)
     return signals
 
@@ -90,8 +90,9 @@ def lambda_handler(event, context):
             }
         print("Event Payload is ",event_payload)
         
-        webhoook_results.append(webhook_handler(event_payload, None))
+        # webhoook_results.append(webhook_handler(event_payload, None))
+        webhoook_results.append(event_payload)
     print("Webhook results", webhoook_results)
     return True
-# event = {"unit":"hours", "interval":2}
-# lambda_handler(event,None)
+event = {"unit":"hours", "interval":2}
+lambda_handler(event,None)
