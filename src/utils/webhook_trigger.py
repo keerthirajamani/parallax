@@ -195,8 +195,7 @@ def process_signal(signal: Dict[str, Any], mode: str, cfg: Config, unit, interva
         return {"symbol": symbol, "side": side, "status": "BAD_TIMESTAMP"}
 
     status = trigger_webhook(SESSION, signal, cfg)
-    # return {"symbol": symbol, "side": side, "status": status}
-    return {"symbol": symbol, "side": side, "status": "status"}
+    return {"symbol": symbol, "side": side, "status": status}
 
 
 def webhook_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
