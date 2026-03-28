@@ -57,11 +57,26 @@ def get_date_range(unit: str, interval: str):
         start_date = datetime(2023, 1, 1)
 
     return start_date, end_date
+
+upstox_access_token ="eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIzUkNLNTYiLCJqdGkiOiI2OWM3N2JlMmVmZmU0ODJmNzA5NmM0YzIiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlzRXh0ZW5kZWQiOnRydWUsImlhdCI6MTc3NDY4MTA1OCwiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxODA2MjcxMjAwfQ.tOVcAfz7htW1OPhPQdxvmu-Uc5HviBvDu3lFYTyUjdg"
 HEADERS = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'Authorization': 'Bearer {your_access_token}'
+    'Authorization': f'Bearer {upstox_access_token}'
 }
+
+def nse_market_status():
+    url = 'https://api.upstox.com/v2/market/status/NSE'
+    try:
+        response = requests.get(url, headers=HEADERS)
+        if response.status_code != 200:
+            raise RuntimeError(f"HTTP error: {response.status_code} - {response.text}")
+        data = response.json()
+        status = data.get('data').get('status')
+        return status
+    except Exception as e:
+        raise RuntimeError(f"NSE status check failed: {e}")
+    
 
 def get_historical(instrument, from_date, to_date, unit, interval):
     url = f"https://api.upstox.com/v3/historical-candle/{instrument}/{unit}/{interval}/{to_date}/{from_date}"

@@ -5,7 +5,8 @@ import pandas as pd
 
 from src.utils.common_utils import (
     apply_trailing_sl,
-    fetch_candles
+    fetch_candles,
+    nse_market_status
 )
 from src.utils.indicators import three_horse_crow_pandas
 from src.utils.webhook_trigger import webhook_handler
@@ -68,7 +69,14 @@ Symbols = {
         "banknifty": "NSE_INDEX%7CNifty%20Bank",
         "finnifty":  "NSE_INDEX%7CNifty%20Fin%20Service"
     }
+
 def lambda_handler(event, context):
+    market_status = nse_market_status()
+    if market_status != "NORMAL_OPEN":
+        return {
+            "status": "skipped",
+            "message": f"Market status: {market_status}"
+        }
     webhoook_results = []
     print("current time:", datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S %Z"))
     unit = event.get("unit")
