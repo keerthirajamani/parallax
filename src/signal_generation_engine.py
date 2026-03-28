@@ -21,7 +21,7 @@ def candles_to_df(candles):
     df.set_index("datetime", inplace=True)
     return df
 
-def get_nifty_2hr(Symbol, unit, interval):
+def get_nifty_data(Symbol, unit, interval):
     instrument = Symbols[Symbol]
     print("instrument", Symbol)
     all_candles = fetch_candles(instrument, unit, interval)
@@ -84,7 +84,7 @@ def lambda_handler(event, context):
     print("Unit is ",unit)
     print("interval is ",interval)
     for Symbol in Symbols:
-        signals = get_nifty_2hr(Symbol, unit, interval)
+        signals = get_nifty_data(Symbol, unit, interval)
         if not signals:
             print("No Signal  for symbol ", Symbol)
             print("")
