@@ -10,6 +10,7 @@ from src.utils.common_utils import (
 )
 from src.utils.indicators import three_horse_crow_pandas
 from src.utils.webhook_trigger import webhook_handler
+from src.config.symbols import resolve_symbol_map, SYMBOL_REGISTRY
 
 IST = ZoneInfo("Asia/Kolkata")
 
@@ -21,13 +22,13 @@ def candles_to_df(candles):
     df.set_index("datetime", inplace=True)
     return df
 
-def get_nifty_data(Symbol, unit, interval):
-    instrument = Symbols[Symbol]
-    print("instrument", Symbol)
+def get_data(symbol: str, unit: str, interval: int, symbol_map: dict):
+    instrument = symbol_map[symbol]
+    print("instrument", symbol)
     all_candles = fetch_candles(instrument, unit, interval)
     df = three_horse_crow_pandas(all_candles, 3)
     df = apply_trailing_sl(df)
-    df["symbol"] = Symbol
+    df["symbol"] = symbol
     print(df.tail(50))
     signals = build_signals_from_last_row(df)
     return signals
@@ -64,34 +65,35 @@ pd.set_option("display.max_columns", None)
 pd.set_option("display.width", None)
 pd.set_option("display.max_colwidth", None)
 
-Symbols = {
-        "nifty50":   "NSE_INDEX%7CNifty%2050",
-        "banknifty": "NSE_INDEX%7CNifty%20Bank",
-        "finnifty":  "NSE_INDEX%7CNifty%20Fin%20Service"
-    }
+
 
 def lambda_handler(event, context):
-    market_status = nse_market_status()
-    if market_status != "NORMAL_OPEN":
-        return {
-            "status": "skipped",
-            "message": f"Market status: {market_status}"
-        }
+    # market_status = nse_market_status()
+    # if market_status != "NORMAL_OPEN":
+    #     return {
+    #         "status": "skipped",
+    #         "message": f"Market status: {market_status}"
+    #     }
     webhoook_results = []
-    print("current time:", datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S %Z"))
     unit = event.get("unit")
     interval =  event.get("interval")
+    entity =  event.get("entity")
     print("Unit is ",unit)
     print("interval is ",interval)
+
+    Symbols = resolve_symbol_map(entity)
+    print("Symbols", Symbols)
+    print("current time:", datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S %Z"))
+    
     for Symbol in Symbols:
-        signals = get_nifty_data(Symbol, unit, interval)
+        signals = get_data(Symbol, unit, interval, Symbols)
         if not signals:
             print("No Signal  for symbol ", Symbol)
             print("")
             print("")
             continue
         event_payload = {
-            "mode": "INDEX",
+            "mode": entity,
             "unit": unit,
             "interval":interval,
             "signals": signals,
@@ -102,5 +104,6 @@ def lambda_handler(event, context):
         # webhoook_results.append(event_payload)
     print("Webhook results", webhoook_results)
     return True
-# event = {"unit":"hours", "interval":2}
-# lambda_handler(event,None)
+event = {"unit":"hours", "interval":2, "entity": "INDEX"}
+# event = {"unit":"days", "interval":1, "entity": "EQUITY"}
+print(lambda_handler(event,None))

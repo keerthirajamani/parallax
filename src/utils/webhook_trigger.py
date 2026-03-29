@@ -109,7 +109,7 @@ def parse_signal_timestamp(ts: str) -> datetime:
     return dt
 
 
-def is_stale(signal_ts: str, cfg: Config, unit, interval) -> bool:
+def is_stale(signal_ts: str, cfg: Config, unit, interval, mode) -> bool:
     dt = parse_signal_timestamp(signal_ts)
     # print("dt", dt)
     now = datetime.now(IST)
@@ -188,7 +188,7 @@ def process_signal(signal: Dict[str, Any], mode: str, cfg: Config, unit, interva
 
     # Stale check (trading safety)
     try:
-        if is_stale(ts, cfg, unit, interval):
+        if is_stale(ts, cfg, unit, interval, mode):
             return {"symbol": symbol, "side": side, "status": "STALE_SKIPPED"}
     except Exception:
         logger.exception("timestamp_parse_failed symbol=%s side=%s ts=%s", symbol, side, ts)
