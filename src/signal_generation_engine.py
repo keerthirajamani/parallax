@@ -68,12 +68,13 @@ pd.set_option("display.max_colwidth", None)
 
 
 def lambda_handler(event, context):
-    # market_status = nse_market_status()
-    # if market_status != "NORMAL_OPEN":
-    #     return {
-    #         "status": "skipped",
-    #         "message": f"Market status: {market_status}"
-    #     }
+    market_status = nse_market_status()
+    print("market_status ",market_status)
+    if market_status != "NORMAL_OPEN":
+        return {
+            "status": "skipped",
+            "message": f"Market status: {market_status}"
+        }
     webhoook_results = []
     unit = event.get("unit")
     interval =  event.get("interval")
