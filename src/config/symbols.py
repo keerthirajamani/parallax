@@ -1,7 +1,9 @@
 INDEX_SYMBOLS = {
         "nifty50":   "NSE_INDEX|Nifty 50",
         "banknifty": "NSE_INDEX|Nifty Bank",
-        "finnifty":  "NSE_INDEX|Nifty Fin Service"
+        "finnifty":  "NSE_INDEX|Nifty Fin Service",
+        "sensex":  "BSE_INDEX|SENSEX",
+        
     }
 EQUITY_SYMBOLS = {
         "ONGC": "NSE_EQ|INE213A01029",

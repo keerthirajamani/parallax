@@ -59,7 +59,14 @@ WEBHOOK_MAP: Dict[str, Dict[str, str]] = {
         'buy':  ['https://www.quantman.trade/external_signal/K2xrZ09xQm44SmVMN04rZDl0Q3U5TGI2L0hodXdLNjNwWFB4c0lHWXNLdjZzSEdPbHJMd2pPMWFVKzE2aUtBdWFITUJ0QjZ6WXRoQlRvUitXQnRqR0E9PS0tVjM1R2pIZm5nUzlwb2J1VHBCY1BJQT09--4e806bc2965b57742d7c717e81be6c006dab6613'],
         'sell': ['https://www.quantman.trade/external_signal/UDdOTWJTZUlMbjY3Vmx2TjFlSy8wYkVmSWZ1UG9KYnMyYlJ2R1I5WVh5K25mQm9wdE9sUm42K3grd3BVQU9NV3h0SW5hTGNkdUcvOUt5NW11dGswN3c9PS0tdU4vejBKTWJKWFBEZ1UvQ3BheFZNdz09--7c59778f8dd89056bbdf0a8cfb6e22a883c028f3'],
         'sl':['https://www.quantman.trade/external_signal/QzBWY1R1eXZXNHNJaHFLU0Z2dGpmQWhodDRaRmNHb2trQmM4ZlJxLzl5dFUycjBvWUo5MDdIQ2lnYXNXTXlhNGlET2kvMDlmd1NjUGFmeU9laXY0S3c9PS0tMzRBV3IyMEtHNm5HdDh2WUdRSHdFZz09--278f0cfd4430ff23684da5026f97713120e436ab']
+    },
+    'sensex': {
+        'buy':  ['https://www.quantman.trade/external_signal/eGZDNlI5eUhQQ21HRCsrRVRiK1lRZEdaM2FtY1hjMkJldENpUzdnTVh0VldNWElGdStLcE4vU0hUdG14TGIyanE5YlpHYVdRR0dqQ213NXZXRkI1dGc9PS0tRThpcGhEVUNaMjlobzVwcTZWQ1czdz09--08642e9585ee7332ea659cea8f87adb255ef98b8'],
+        'sell': ['https://www.quantman.trade/external_signal/TFZHc1A5Y0k2R3NtaENacnVYOGdFMmJMWlcvbHFXbW9JWHNZQVRsRjhCRkpaTnJER0pqQ29USmh3WEVUdFV6czMxa2lrdHIvQWtJc0tVTU1FdFB2MHc9PS0tWTh5Y0duTURPV3h4eHo5Z2cwLzFkdz09--24edc975e6f6072b1f0dcab810f776817021c21d'],
+        'sl':['https://www.quantman.trade/external_signal/ZkdOTUIrMWM2VEN3REMxb041ZFUrcDNEd0NkVGJRclV6SlF5ZjJUbEhacWU1dlVHM21kR3ZvMEo1NG9jUVFJQ1lKR0ZxbDVzREFkM2dtakliMWxvN2c9PS0tM1cyQ2RRaVQ2RVlDSkpCT2x1RU5Kdz09--9b2961e07b134e146ae01621eb0843d6f99cce7a']
     }
+
+    
 }
 
 def build_session(cfg: Config) -> requests.Session:

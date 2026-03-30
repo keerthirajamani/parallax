@@ -26,6 +26,7 @@ override.tf.json
 # temporary files
 *.tmp
 
+
 # Include override files you do wish to add to version control using negated pattern
 # !example_override.tf
 
@@ -38,3 +39,9 @@ terraform.rc
 
 # MacOS rules
 .DS_Store
+
+# Ignore Python compiled files
+*.pyc
+
+# Ignore __pycache__ directories
+__pycache__/
