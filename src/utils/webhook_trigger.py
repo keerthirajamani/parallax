@@ -98,7 +98,6 @@ SESSION = build_session(CFG)
 
 def get_webhook_url(symbol: str, side: Side) -> str:
     try:
-        # print(f"webhook url is :: {WEBHOOK_MAP[symbol][side]}")
         return WEBHOOK_MAP[symbol][side]
     except KeyError as e:
         raise ValueError(f"Webhook URL not found for symbol={symbol} side={side}") from e
@@ -118,7 +117,6 @@ def parse_signal_timestamp(ts: str) -> datetime:
 
 def is_stale(signal_ts: str, cfg: Config, unit, interval, mode) -> bool:
     dt = parse_signal_timestamp(signal_ts)
-    # print("dt", dt)
     now = datetime.now(IST)
     if unit == "minutes":
         interval_delta = timedelta(minutes=interval)
@@ -128,15 +126,10 @@ def is_stale(signal_ts: str, cfg: Config, unit, interval, mode) -> bool:
         interval_delta = timedelta(days=interval)
     else:
         raise ValueError("Unsupported interval unit")
-    # print("interval_delta", interval_delta)
     candle_close = dt + interval_delta
-    # print("candle_close", candle_close)
     expiry_time = candle_close + timedelta(seconds=cfg.stale_seconds)
     print("expiry_time", expiry_time)
-    # print("Current Time", now)
 
-    # age = (now - dt.astimezone(IST)).total_seconds()
-    # return age > cfg.stale_seconds
     return now > expiry_time
 
 
@@ -213,20 +206,47 @@ def webhook_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
     if not signals:
         return {"status": "NO_SIGNAL", "processed_count": 0, "results": [], "timestamp": datetime.now(IST).isoformat()}
-
-    # Guardrails
-    workers = max(1, min(CFG.max_workers, len(signals)))
+    
     results: List[Dict[str, Any]] = []
 
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        futures = [executor.submit(process_signal, s, mode, CFG, unit, interval) for s in signals]
+    sl_signals = [s for s in signals if s.get("signal_type") == "sl"]
+    other_signals = [s for s in signals if s.get("signal_type") != "sl"]
+    
 
-        for fut in as_completed(futures):
+    if sl_signals:
+        sl_results = []
+        logger.info("Executing SL orders first")
+        for s in sl_signals:
             try:
-                results.append(fut.result())
+                result = process_signal(s, mode, CFG, unit, interval)
+                results.append(result)
+                sl_results.append(result)
             except Exception:
-                logger.exception("process_signal_unhandled")
-                results.append({"symbol": None, "side": None, "status": "PROCESSING_FAILED"})
+                logger.exception("SL Signal Exception")
+                fail_result ={
+                    "symbol": s.get('symbol'),
+                    "side": s.get('signal_type'),
+                    "status": "PROCESSING_FAILED"
+                }
+                results.append(fail_result)
+                sl_results.append(fail_result)
+        print("sl_results", sl_results)
+    
+
+    if other_signals:
+        time.sleep(1)
+        logger.info("Executing BUY/SELL as second priority.")
+        for s in other_signals:
+            try:
+                results.append(process_signal(s, mode, CFG, unit, interval))
+            except Exception:
+                logger.exception("Buy/Sell Signal Exception")
+                results.append({
+                    "symbol": s.get('symbol'),
+                    "side": s.get('signal_type'),
+                    "status": "PROCESSING_FAILED"
+                })
+
 
     processed = len(results)
     sent = sum(1 for r in results if r.get("status") == "WEBHOOK_SENT")

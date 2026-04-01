@@ -24,12 +24,12 @@ def candles_to_df(candles):
 
 def get_data(symbol: str, unit: str, interval: int, symbol_map: dict):
     instrument = symbol_map[symbol]
-    print("instrument", symbol)
+    print(f"------ instrument ------{symbol}------")
     all_candles = fetch_candles(instrument, unit, interval)
     df = three_horse_crow_pandas(all_candles, 3)
     df = apply_trailing_sl(df)
     df["symbol"] = symbol
-    print(df.tail(50))
+    print(df.tail(20).to_string())
     signals = build_signals_from_last_row(df)
     return signals
 
@@ -37,7 +37,7 @@ def build_signals_from_last_row(df):
     if df.empty:
         return []
 
-    last = df.iloc[-1] # default value should be -1, for testing changed it to -3.
+    last = df.iloc[-1]
     signals = []
 
     base_payload = {
@@ -105,6 +105,6 @@ def lambda_handler(event, context):
         # webhoook_results.append(event_payload)
     print("Webhook results", webhoook_results)
     return True
-# event = {"unit":"hours", "interval":2, "entity": "INDEX"}
+event = {"unit":"hours", "interval":2, "entity": "INDEX"}
 # event = {"unit":"days", "interval":1, "entity": "EQUITY"}
-# print(lambda_handler(event,None))
+print(lambda_handler(event,None))
