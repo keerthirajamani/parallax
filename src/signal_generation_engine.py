@@ -105,6 +105,6 @@ def lambda_handler(event, context):
         # webhoook_results.append(event_payload)
     print("Webhook results", webhoook_results)
     return True
-event = {"unit":"hours", "interval":2, "entity": "INDEX"}
+# event = {"unit":"hours", "interval":2, "entity": "INDEX"}
 # event = {"unit":"days", "interval":1, "entity": "EQUITY"}
-print(lambda_handler(event,None))
+# print(lambda_handler(event,None))
