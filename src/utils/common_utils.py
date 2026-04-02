@@ -185,7 +185,6 @@ def apply_trailing_sl(
     """
 
     df = df.copy()
-    df["candleType"] = df.apply(lambda r: "Bull" if r["close"] > r["open"] else "Bear",axis=1)
     df["ts"] = pd.to_datetime(df["ts"])
     df = df.set_index("ts")
 

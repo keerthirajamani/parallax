@@ -77,6 +77,7 @@ def three_horse_crow_pandas(candles, swing=3):
     # Force correct dtypes early
     # ----------------------------
     df["ts"] = pd.to_datetime(df["ts"], errors="coerce")
+    df["candleType"] = df.apply(lambda r: "Bull" if r["close"] > r["open"] else "Bear",axis=1)
 
     numeric_cols = ["open", "high", "low", "close", "volume", "oi"]
     df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors="coerce")
@@ -107,5 +108,10 @@ def three_horse_crow_pandas(candles, swing=3):
     df["sell"] = (df["close"] < df["tsl"]) & (
         df["prev_close"] >= df["prev_tsl"]
     )
+    # Below Commented code is check the buy signal in bearish candle at 9:15 candle.
+    # is_0915 = df["ts"].dt.time == pd.Timestamp("09:15").time()
+
+    # df["buy"] = df["buy"] & ~(is_0915 & (df["candleType"] == "Bear"))
+    # df["sell"] = df["sell"] & ~(is_0915 & (df["candleType"] == "Bull"))
     df = df.drop(columns=["oi"])
     return df
