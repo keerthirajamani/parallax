@@ -27,7 +27,6 @@ def get_data(symbol: str, unit: str, interval: int, symbol_map: dict):
     print(f"------ instrument ------{symbol}------")
     all_candles = fetch_candles(instrument, unit, interval)
     df = three_horse_crow_pandas(all_candles, 3)
-    df = ut_bot_pandas(all_candles,3,10)
     df = apply_trailing_sl(df)
     df["symbol"] = symbol
     # path = "/Users/keerthirajamani/Downloads/data/output.csv"
@@ -48,7 +47,8 @@ def build_signals_from_last_row(df):
         # "exchange_token": last["exchange_token"],
         "close": float(last["close"]),
         "tsl": last["tsl"],
-        "timestamp": last["ts"].isoformat(),
+        # "timestamp": last["ts"].isoformat(),
+        "timestamp": last.name.isoformat(),
     }
 
     if last["sl_hit"]:
@@ -71,13 +71,13 @@ pd.set_option("display.max_colwidth", None)
 
 
 def lambda_handler(event, context):
-    market_status = nse_market_status()
-    print("market_status ",market_status)
-    if market_status != "NORMAL_OPEN":
-        return {
-            "status": "skipped",
-            "message": f"Market status: {market_status}"
-        }
+    # market_status = nse_market_status()
+    # print("market_status ",market_status)
+    # if market_status != "NORMAL_OPEN":
+    #     return {
+    #         "status": "skipped",
+    #         "message": f"Market status: {market_status}"
+    #     }
     webhoook_results = []
     unit = event.get("unit")
     interval =  event.get("interval")
@@ -108,6 +108,6 @@ def lambda_handler(event, context):
         # webhoook_results.append(event_payload)
     print("Webhook results", webhoook_results)
     return True
-# event = {"unit":"hours", "interval":2, "entity": "INDEX"}
+event = {"unit":"hours", "interval":2, "entity": "INDEX"}
 # event = {"unit":"days", "interval":1, "entity": "EQUITY"}
-# print(lambda_handler(event,None))
+print(lambda_handler(event,None))
