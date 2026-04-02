@@ -1,4 +1,4 @@
-import requests
+import requests, sys
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import pandas as pd
@@ -8,7 +8,7 @@ from src.utils.common_utils import (
     fetch_candles,
     nse_market_status
 )
-from src.utils.indicators import three_horse_crow_pandas
+from src.utils.indicators import three_horse_crow_pandas, ut_bot_pandas
 from src.utils.webhook_trigger import webhook_handler
 from src.config.symbols import resolve_symbol_map, SYMBOL_REGISTRY
 
@@ -27,6 +27,7 @@ def get_data(symbol: str, unit: str, interval: int, symbol_map: dict):
     print(f"------ instrument ------{symbol}------")
     all_candles = fetch_candles(instrument, unit, interval)
     df = three_horse_crow_pandas(all_candles, 3)
+    # df = ut_bot_pandas(all_candles,3,10)
     df = apply_trailing_sl(df)
     df["symbol"] = symbol
     print(df.tail(20).to_string())
