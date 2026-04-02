@@ -1,4 +1,4 @@
-import requests, sys
+import requests, sys, os
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import pandas as pd
@@ -27,9 +27,11 @@ def get_data(symbol: str, unit: str, interval: int, symbol_map: dict):
     print(f"------ instrument ------{symbol}------")
     all_candles = fetch_candles(instrument, unit, interval)
     df = three_horse_crow_pandas(all_candles, 3)
-    # df = ut_bot_pandas(all_candles,3,10)
+    df = ut_bot_pandas(all_candles,3,10)
     df = apply_trailing_sl(df)
     df["symbol"] = symbol
+    # path = "/Users/keerthirajamani/Downloads/data/output.csv"
+    # df.to_csv(path, mode="a", header=not os.path.exists(path), index=False)
     print(df.tail(20).to_string())
     signals = build_signals_from_last_row(df)
     return signals
@@ -45,11 +47,11 @@ def build_signals_from_last_row(df):
         "symbol": last["symbol"],
         # "exchange_token": last["exchange_token"],
         "close": float(last["close"]),
-        "tsl": last["SL"],
-        "timestamp": last.name.isoformat(),
+        "tsl": last["tsl"],
+        "timestamp": last["ts"].isoformat(),
     }
 
-    if last["SL_HIT"]:
+    if last["sl_hit"]:
         signals.append({**base_payload, "signal_type": "sl"})
 
     if last["buy"]:
