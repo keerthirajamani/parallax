@@ -8,12 +8,11 @@ from src.utils.common_utils import (
     fetch_candles,
     nse_market_status
 )
-from src.utils.indicators import three_horse_crow_pandas
+from src.utils.indicators import three_horse_crow_pandas, ut_bot_alerts
 from src.utils.webhook_trigger import webhook_handler
 from src.config.symbols import resolve_symbol_map, SYMBOL_REGISTRY
 
 IST = ZoneInfo("Asia/Kolkata")
-
 
 def candles_to_df(candles):
     df = pd.DataFrame(candles, columns=["datetime", "open", "high", "low", "close", "volume", "oi"])
@@ -27,11 +26,10 @@ def get_data(symbol: str, unit: str, interval: int, symbol_map: dict):
     print(f"------ instrument ------{symbol}------")
     all_candles = fetch_candles(instrument, unit, interval)
     df = three_horse_crow_pandas(all_candles, 3)
+    # df = ut_bot_alerts(all_candles)
     df = apply_trailing_sl(df)
     df["symbol"] = symbol
-    # path = "/Users/keerthirajamani/Downloads/data/output.csv"
-    # df.to_csv(path, mode="a", header=not os.path.exists(path), index=False)
-    print(df.tail(20).to_string())
+    print(df.tail(40).to_string())
     signals = build_signals_from_last_row(df)
     return signals
 
@@ -71,13 +69,13 @@ pd.set_option("display.max_colwidth", None)
 
 
 def lambda_handler(event, context):
-    # market_status = nse_market_status()
-    # print("market_status ",market_status)
-    # if market_status != "NORMAL_OPEN":
-    #     return {
-    #         "status": "skipped",
-    #         "message": f"Market status: {market_status}"
-    #     }
+    market_status = nse_market_status()
+    print("market_status ",market_status)
+    if market_status != "NORMAL_OPEN":
+        return {
+            "status": "skipped",
+            "message": f"Market status: {market_status}"
+        }
     webhoook_results = []
     unit = event.get("unit")
     interval =  event.get("interval")
@@ -108,6 +106,6 @@ def lambda_handler(event, context):
         # webhoook_results.append(event_payload)
     print("Webhook results", webhoook_results)
     return True
-# event = {"unit":"hours", "interval":2, "entity": "INDEX"}
+# event = {"unit":"minutes", "interval":15, "entity": "INDEX"}
 # event = {"unit":"days", "interval":1, "entity": "EQUITY"}
 # print(lambda_handler(event,None))
