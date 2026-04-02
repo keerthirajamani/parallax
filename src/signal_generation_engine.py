@@ -8,7 +8,7 @@ from src.utils.common_utils import (
     fetch_candles,
     nse_market_status
 )
-from src.utils.indicators import three_horse_crow_pandas, ut_bot_pandas
+from src.utils.indicators import three_horse_crow_pandas
 from src.utils.webhook_trigger import webhook_handler
 from src.config.symbols import resolve_symbol_map, SYMBOL_REGISTRY
 
@@ -108,6 +108,6 @@ def lambda_handler(event, context):
         # webhoook_results.append(event_payload)
     print("Webhook results", webhoook_results)
     return True
-event = {"unit":"hours", "interval":2, "entity": "INDEX"}
+# event = {"unit":"hours", "interval":2, "entity": "INDEX"}
 # event = {"unit":"days", "interval":1, "entity": "EQUITY"}
-print(lambda_handler(event,None))
+# print(lambda_handler(event,None))
