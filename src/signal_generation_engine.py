@@ -97,6 +97,7 @@ def lambda_handler(event, context):
         event_payload = {
             "mode": entity,
             "unit": unit,
+            "instrument": Symbols[Symbol],
             "interval":interval,
             "signals": signals,
             }
