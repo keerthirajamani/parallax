@@ -7,6 +7,7 @@ import json
 import boto3
 import csv
 import pandas as pd
+import numpy as np
 from io import StringIO
 import logging, requests
 
@@ -195,6 +196,25 @@ def apply_trailing_sl(
 
     df["sl"] = None
     df["sl_hit"] = False
+    
+    df["trade"] = 0
+    df.loc[df["buy"], "trade"] = 1
+    df.loc[df["sell"], "trade"] = -1
+    
+    df["prev_tsl"] = df["tsl"].shift(1)
+
+    df["tsl_sl_hit"] = (
+        ((df["trade"] == 1) & (df["low"] < df["prev_tsl"])) |
+        ((df["trade"] == -1) & (df["high"] > df["prev_tsl"]))
+    )
+    # carry forward
+    df["trade"] = df["trade"].replace(0, np.nan).ffill()
+
+    # stop trade when SL hit
+    df.loc[df["tsl_sl_hit"], "trade"] = np.nan
+
+    # forward fill again (only valid trades continue)
+    df["trade"] = df["trade"].ffill().fillna(0)
 
     current_sl = None
     position = None
@@ -234,7 +254,6 @@ def apply_trailing_sl(
                     position = None
                     current_sl = None
                     # continue
-                        # ADD THIS ↓
                     if sell:
                         position     = "SHORT"
                         current_sl   = high
@@ -252,7 +271,6 @@ def apply_trailing_sl(
                     position = None
                     current_sl = None
                     # continue
-                    # ADD THIS ↓
                     if buy:
                         position     = "LONG"
                         current_sl   = low

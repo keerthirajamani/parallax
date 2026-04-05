@@ -15,8 +15,11 @@ def three_horse_crow_pandas(candles, swing=3):
     # Force correct dtypes early
     # ----------------------------
     df["ts"] = pd.to_datetime(df["ts"], errors="coerce")
-    df["candleType"] = df.apply(lambda r: "Bull" if r["close"] > r["open"] else "Bear",axis=1)
-    df["candleType"] = df.apply(lambda r: "Bull" if r["close"] > r["open"] else "Bear",axis=1)
+
+    df["candleType"] = np.where(df["close"] > df["open"], "Bull", "Bear")
+    df["body_size"] = (df["close"] - df["open"]).abs()
+    df["body_threshold"] = df["close"] * 0.0025
+    df["is_strong"] = df["body_size"] >= df["body_threshold"]
 
     numeric_cols = ["open", "high", "low", "close", "volume", "oi"]
     df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors="coerce")
@@ -40,18 +43,27 @@ def three_horse_crow_pandas(candles, swing=3):
     df["prev_close"] = df["close"].shift(1)
     df["prev_tsl"] = df["tsl"].shift(1)
 
-    df["buy"] = (df["close"] > df["tsl"]) & (
-        df["prev_close"] <= df["prev_tsl"]
-    )
+    # df["buy_0"] = (df["close"] > df["tsl"]) & (
+    #     df["prev_close"] <= df["prev_tsl"]
+    # )
 
-    df["sell"] = (df["close"] < df["tsl"]) & (
-        df["prev_close"] >= df["prev_tsl"]
-    )
-    # Below Commented code is check the buy signal in bearish candle at 9:15 candle.
-    # is_0915 = df["ts"].dt.time == pd.Timestamp("09:15").time()
+    # df["sell_0"] = (df["close"] < df["tsl"]) & (
+    #     df["prev_close"] >= df["prev_tsl"]
+    # )
+    
+    df["buy"] = (
+        (df["close"] > df["tsl"]) &
+        (df["prev_close"] <= df["prev_tsl"]) &
+        (df["candleType"] == "Bull") &
+        df["is_strong"]
+        )
+    df["sell"] = (
+        (df["close"] < df["tsl"]) &
+        (df["prev_close"] >= df["prev_tsl"]) &
+        (df["candleType"] == "Bear") &
+        df["is_strong"]
+        )
 
-    # df["buy"] = df["buy"] & ~(is_0915 & (df["candleType"] == "Bear"))
-    # df["sell"] = df["sell"] & ~(is_0915 & (df["candleType"] == "Bull"))
     df = df.drop(columns=["oi","res","sup","res_prev","sup_prev","avd","avn","prev_close","prev_tsl"])
     return df
 
