@@ -79,8 +79,10 @@ def ut_bot_alerts(candles, key_value=1, atr_period=10, use_heikin_ashi=False):
     # Force correct dtypes early
     # ----------------------------
     df["ts"] = pd.to_datetime(df["ts"], errors="coerce")
-    df["candleType"] = df.apply(lambda r: "Bull" if r["close"] > r["open"] else "Bear",axis=1)
-    df["candleType"] = df.apply(lambda r: "Bull" if r["close"] > r["open"] else "Bear",axis=1)
+    df["candleType"] = np.where(df["close"] > df["open"], "Bull", "Bear")
+    df["body_size"] = (df["close"] - df["open"]).abs()
+    df["body_threshold"] = df["close"] * 0.0025
+    df["is_strong"] = df["body_size"] >= df["body_threshold"]
 
     numeric_cols = ["open", "high", "low", "close", "volume", "oi"]
     df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors="coerce")

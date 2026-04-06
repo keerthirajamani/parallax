@@ -1,4 +1,4 @@
-import requests, sys, os
+import requests, sys, os, json
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import pandas as pd
@@ -25,17 +25,30 @@ def get_data(symbol: str, unit: str, interval: int, symbol_map: dict):
     instrument = symbol_map[symbol]
     print(f"------ instrument ------{symbol}------")
     all_candles = fetch_candles(instrument, unit, interval)
-    df = three_horse_crow_pandas(all_candles, 3)
-    # df = ut_bot_alerts(all_candles)
+    # df = three_horse_crow_pandas(all_candles, 3)
+    df = ut_bot_alerts(all_candles)
     df = apply_trailing_sl(df)
     df["symbol"] = symbol
     print(df.tail(40).to_string())
+    # file_path = "/Users/keerthirajamani/Downloads/data/threehorsecrow_1h.csv"
+    file_path = "/Users/keerthirajamani/Downloads/data/utbot_1h.csv"
+    df.to_csv(file_path, mode="a", header=not os.path.exists(file_path), index=True)
     signals = build_signals_from_last_row(df)
     return signals
 
 def build_signals_from_last_row(df):
+
     if df.empty:
         return []
+
+    if "ts" in df.columns:
+        print("Setting ts")
+        df["ts"] = pd.to_datetime(df["ts"])
+        df = df.set_index("ts")
+    else:
+        # assume already index
+        df.index = pd.to_datetime(df.index)
+        print('Else')
 
     last = df.iloc[-1]
     signals = []
@@ -105,7 +118,7 @@ def lambda_handler(event, context):
         
         webhoook_results.append(webhook_handler(event_payload, None))
         # webhoook_results.append(event_payload)
-    print("Webhook results", webhoook_results)
+    print("Webhook results", json.dumps(webhoook_results, indent=2))
     return True
 # event = {"unit":"hours", "interval":1, "entity": "INDEX"}
 # event = {"unit":"days", "interval":1, "entity": "EQUITY"}
