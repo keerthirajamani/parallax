@@ -9,7 +9,7 @@ from src.utils.common_utils import (
     nse_market_status,
     convert_candles_to_df
 )
-from src.utils.indicators import three_horse_crow_pandas, ut_bot_alerts
+from src.utils.indicators import three_horse_crow, ut_bot_alerts
 from src.utils.webhook_trigger import webhook_handler
 from src.config.symbols import resolve_symbol_map, SYMBOL_REGISTRY
 
@@ -27,7 +27,7 @@ def get_data(symbol: str, unit: str, interval: int, symbol_map: dict):
     print(f"------ instrument ------{symbol}------")
     all_candles = fetch_candles(instrument, unit, interval)
     df = convert_candles_to_df(all_candles)
-    df = three_horse_crow_pandas(df)
+    df = three_horse_crow(df)
     # df = ut_bot_alerts(df)
     df["symbol"] = symbol
     df = apply_trailing_sl(df)

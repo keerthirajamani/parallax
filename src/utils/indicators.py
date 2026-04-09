@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-def three_horse_crow_pandas(df, prefix='3hc', swing=3):
+def three_horse_crow(df, prefix='3hc', swing=3):
     df = df.copy()
 
     # ----------------------------
@@ -158,11 +158,6 @@ def ut_bot_alerts(df, prefix="2ut", key_value=1, atr_period=10, use_heikin_ashi=
 
     # --- Output ---
     result = data.copy()
-    # result['2ut_atr'] = atr
-    # result['2ut_tsl'] = trailing_stop
-    # result['2ut_buy'] = buy
-    # result['2ut_sell'] = sell
-    # result['2ut_pos'] = pos
     result[tsl_col] = trailing_stop
     result[buy_col] = buy
     result[sell_col] = sell
