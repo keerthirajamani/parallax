@@ -15,6 +15,7 @@ import logging, requests
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+CANDLE_BODY_THRESHOLD = 0.0015
 
 IST = ZoneInfo("Asia/Kolkata")
 API_CALLS_PER_SEC = 10
@@ -177,9 +178,116 @@ def load_stock_symbols_from_s3(bucket: str, key: str) -> set:
 
     return symbols
 
+# def apply_trailing_sl(
+#     df: pd.DataFrame,
+#     ignore_time: str = "15:15:00",
+# ) -> pd.DataFrame:
+#     """
+#     Removes specified candle time and applies trailing SL logic.
+#     """
+
+#     df = df.copy()
+#     df["ts"] = pd.to_datetime(df["ts"])
+#     df = df.set_index("ts")
+
+#     # ================= REMOVE TIME =================
+#     if ignore_time:
+#         ignore_time_obj = date_time_time.fromisoformat(ignore_time)
+#         df = df[df.index.time != ignore_time_obj]
+
+#     df["sl"] = None
+#     df["sl_hit"] = False
+    
+#     df["trade"] = 0
+#     df.loc[df["buy"], "trade"] = 1
+#     df.loc[df["sell"], "trade"] = -1
+    
+# #     df["prev_tsl"] = df["tsl"].shift(1)
+
+#     df["tsl_sl_hit"] = (
+#         ((df["trade"] == 1) & (df["low"] < df["prev_tsl"])) |
+#         ((df["trade"] == -1) & (df["high"] > df["prev_tsl"]))
+#     )
+#     # carry forward
+#     df["trade"] = df["trade"].replace(0, np.nan).ffill()
+
+#     # stop trade when SL hit
+#     df.loc[df["tsl_sl_hit"], "trade"] = np.nan
+
+#     # forward fill again (only valid trades continue)
+#     df["trade"] = df["trade"].ffill().fillna(0)
+
+#     current_sl = None
+#     position = None
+
+#     for i in range(len(df)):
+#         row = df.iloc[i]
+#         buy = row["buy"] == True
+#         sell = row["sell"] == True
+#         close = row["close"]
+#         low = row["low"]
+#         high = row["high"]
+
+#         if position is None and buy:
+#             position = "LONG"
+#             current_sl = low
+#             df.at[df.index[i], "sl"] = current_sl
+#             continue
+
+#         elif position is None and sell:
+#             position = "SHORT"
+#             current_sl = high
+#             df.at[df.index[i], "sl"] = current_sl
+#             continue
+#         # prev_open = df.iloc[i-1]["open"] if i > 0 else open
+#         prev_high = df.iloc[i-1]["high"] if i > 0 else high
+#         prev_low = df.iloc[i-1]["low"] if i > 0 else low
+#         prev_close = df.iloc[i-1]["close"] if i > 0 else close
+#         bullish = close > prev_close
+#         bearish = close < prev_close
+
+#         if position == "LONG":
+#             if low < current_sl:
+#                 bullish = close > prev_close
+#                 if not bullish and close <= current_sl:
+#                     df.at[df.index[i], "sl_hit"] = True
+#                     df.at[df.index[i], "sl"] = current_sl
+#                     position = None
+#                     current_sl = None
+#                     # continue
+#                     if sell:
+#                         position     = "SHORT"
+#                         current_sl   = high
+#                         # sl_values[i] = current_sl
+#                         df.at[df.index[i], "sl"] = current_sl
+#             else:
+#                 # current_sl = low
+#                 current_sl = max(current_sl, low)
+#             df.at[df.index[i], "sl"] = current_sl
+#         elif position == "SHORT":
+#             if high > current_sl:
+#                 if not bearish and close >= current_sl:
+#                     df.at[df.index[i], "sl_hit"] = True
+#                     df.at[df.index[i], "sl"] = current_sl
+#                     position = None
+#                     current_sl = None
+#                     # continue
+#                     if buy:
+#                         position     = "LONG"
+#                         current_sl   = low
+#                         # sl_values[i] = current_sl
+#                         df.at[df.index[i], "sl"] = current_sl
+#             else:
+#                 # current_sl = high
+#                 current_sl = min(current_sl, high)
+#             df.at[df.index[i], "sl"] = current_sl
+#     return df
+
+
 def apply_trailing_sl(
     df: pd.DataFrame,
     ignore_time: str = "15:15:00",
+    prefixes=("3hc", "2ut"),
 ) -> pd.DataFrame:
     """
     Removes specified candle time and applies trailing SL logic.
@@ -193,91 +301,47 @@ def apply_trailing_sl(
     if ignore_time:
         ignore_time_obj = date_time_time.fromisoformat(ignore_time)
         df = df[df.index.time != ignore_time_obj]
+    for prefix in prefixes:
+        tsl_col = f"{prefix}_tsl"
+        pos_col = f"{prefix}_pos"
+        sl_col  = f"{prefix}_sl"
+        if tsl_col not in df.columns or pos_col not in df.columns:
+            continue
 
-    df["sl"] = None
-    df["sl_hit"] = False
+        prev_tsl = df[tsl_col].shift(1)
     
-    df["trade"] = 0
-    df.loc[df["buy"], "trade"] = 1
-    df.loc[df["sell"], "trade"] = -1
-    
-    df["prev_tsl"] = df["tsl"].shift(1)
+        df[sl_col] = (
+            ((df[pos_col].shift(1) == float(1) ) & (df['close'] < prev_tsl)) |
+            (((df[pos_col].shift(1) == float(-1)) & (df['close'] > prev_tsl)))
+        )
 
-    df["tsl_sl_hit"] = (
-        ((df["trade"] == 1) & (df["low"] < df["prev_tsl"])) |
-        ((df["trade"] == -1) & (df["high"] > df["prev_tsl"]))
+    return df
+
+def convert_candles_to_df(candles: list) -> pd.DataFrame:
+    """
+    Convert raw candle data to a pandas DataFrame.
+
+    Args:
+        candles: List of candles, where each candle is typically
+                 [timestamp, open, high, low, close, volume]
+
+    Returns:
+        pd.DataFrame with columns: timestamp, open, high, low, close, volume
+    """
+    df = pd.DataFrame(
+        candles,
+        columns=["ts", "open", "high", "low", "close", "volume","oi"]
     )
-    # carry forward
-    df["trade"] = df["trade"].replace(0, np.nan).ffill()
+    df["ts"] = pd.to_datetime(df["ts"], errors="coerce")
 
-    # stop trade when SL hit
-    df.loc[df["tsl_sl_hit"], "trade"] = np.nan
+    df["candleType"] = np.where(df["close"] > df["open"], "Bull", "Bear")
+    df["body_size"] = (df["close"] - df["open"]).abs()
+    df["body_threshold"] = df["close"] * CANDLE_BODY_THRESHOLD
+    df["is_strong"] = df["body_size"] >= df["body_threshold"]
 
-    # forward fill again (only valid trades continue)
-    df["trade"] = df["trade"].ffill().fillna(0)
+    numeric_cols = ["open", "high", "low", "close", "volume", "oi"]
+    df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors="coerce")
 
-    current_sl = None
-    position = None
+    df = df.sort_values("ts").reset_index(drop=True)
 
-    for i in range(len(df)):
-        row = df.iloc[i]
-        buy = row["buy"] == True
-        sell = row["sell"] == True
-        close = row["close"]
-        low = row["low"]
-        high = row["high"]
-
-        if position is None and buy:
-            position = "LONG"
-            current_sl = low
-            df.at[df.index[i], "sl"] = current_sl
-            continue
-
-        elif position is None and sell:
-            position = "SHORT"
-            current_sl = high
-            df.at[df.index[i], "sl"] = current_sl
-            continue
-        # prev_open = df.iloc[i-1]["open"] if i > 0 else open
-        prev_high = df.iloc[i-1]["high"] if i > 0 else high
-        prev_low = df.iloc[i-1]["low"] if i > 0 else low
-        prev_close = df.iloc[i-1]["close"] if i > 0 else close
-        bullish = close > prev_close
-        bearish = close < prev_close
-
-        if position == "LONG":
-            if low < current_sl:
-                bullish = close > prev_close
-                if not bullish and close <= current_sl:
-                    df.at[df.index[i], "sl_hit"] = True
-                    df.at[df.index[i], "sl"] = current_sl
-                    position = None
-                    current_sl = None
-                    # continue
-                    if sell:
-                        position     = "SHORT"
-                        current_sl   = high
-                        # sl_values[i] = current_sl
-                        df.at[df.index[i], "sl"] = current_sl
-            else:
-                # current_sl = low
-                current_sl = max(current_sl, low)
-            df.at[df.index[i], "sl"] = current_sl
-        elif position == "SHORT":
-            if high > current_sl:
-                if not bearish and close >= current_sl:
-                    df.at[df.index[i], "sl_hit"] = True
-                    df.at[df.index[i], "sl"] = current_sl
-                    position = None
-                    current_sl = None
-                    # continue
-                    if buy:
-                        position     = "LONG"
-                        current_sl   = low
-                        # sl_values[i] = current_sl
-                        df.at[df.index[i], "sl"] = current_sl
-            else:
-                # current_sl = high
-                current_sl = min(current_sl, high)
-            df.at[df.index[i], "sl"] = current_sl
     return df

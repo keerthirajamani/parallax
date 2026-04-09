@@ -1,30 +1,16 @@
 import pandas as pd
 import numpy as np
 
-def three_horse_crow_pandas(candles, swing=3):
-
-    if not candles or len(candles) < swing + 2:
-        return None
-
-    df = pd.DataFrame(
-        candles,
-        columns=["ts", "open", "high", "low", "close", "volume", "oi"]
-    )
+def three_horse_crow_pandas(df, prefix='3hc', swing=3):
+    df = df.copy()
 
     # ----------------------------
-    # Force correct dtypes early
+    # Column names (dynamic)
     # ----------------------------
-    df["ts"] = pd.to_datetime(df["ts"], errors="coerce")
-
-    df["candleType"] = np.where(df["close"] > df["open"], "Bull", "Bear")
-    df["body_size"] = (df["close"] - df["open"]).abs()
-    df["body_threshold"] = df["close"] * 0.0025
-    df["is_strong"] = df["body_size"] >= df["body_threshold"]
-
-    numeric_cols = ["open", "high", "low", "close", "volume", "oi"]
-    df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors="coerce")
-
-    df = df.sort_values("ts").reset_index(drop=True)
+    tsl_col  = f"{prefix}_tsl"
+    buy_col  = f"{prefix}_buy"
+    sell_col = f"{prefix}_sell"
+    pos_col  = f"{prefix}_pos"
 
     # ----------------------------
     # Rolling calculations
@@ -38,60 +24,72 @@ def three_horse_crow_pandas(candles, swing=3):
     df["avd"] = 0
     df.loc[df["close"] > df["res_prev"], "avd"] = 1
     df.loc[df["close"] < df["sup_prev"], "avd"] = -1
-    df["avn"] = (df["avd"].astype("float64").replace(0, np.nan).ffill().fillna(0).astype("int8"))
-    df["tsl"] = np.where(df["avn"] == 1, df["sup"], df["res"])
+
+    df["avn"] = (
+        df["avd"]
+        .astype("float64")
+        .replace(0, np.nan)
+        .ffill()
+        .fillna(0)
+        .astype("int8")
+    )
+
+    df[tsl_col] = np.where(df["avn"] == 1, df["sup"], df["res"])
+
     df["prev_close"] = df["close"].shift(1)
-    df["prev_tsl"] = df["tsl"].shift(1)
+    df["prev_tsl"] = df[tsl_col].shift(1)
 
-    # df["buy_0"] = (df["close"] > df["tsl"]) & (
-    #     df["prev_close"] <= df["prev_tsl"]
-    # )
-
-    # df["sell_0"] = (df["close"] < df["tsl"]) & (
-    #     df["prev_close"] >= df["prev_tsl"]
-    # )
-    
-    df["buy"] = (
-        (df["close"] > df["tsl"]) &
+    # ----------------------------
+    # Signals
+    # ----------------------------
+    df[buy_col] = (
+        (df["close"] > df[tsl_col]) &
         (df["prev_close"] <= df["prev_tsl"]) &
         (df["candleType"] == "Bull") &
         df["is_strong"]
-        )
-    df["sell"] = (
-        (df["close"] < df["tsl"]) &
+    )
+
+    df[sell_col] = (
+        (df["close"] < df[tsl_col]) &
         (df["prev_close"] >= df["prev_tsl"]) &
         (df["candleType"] == "Bear") &
         df["is_strong"]
-        )
+    )
 
-    df = df.drop(columns=["oi","res","sup","res_prev","sup_prev","avd","avn","prev_close","prev_tsl"])
+    # ----------------------------
+    # POSITION LOGIC (unchanged)
+    # ----------------------------
+    pos = np.zeros(len(df))
+
+    for i in range(1, len(df)):
+        if df["close"].iloc[i-1] <= df[tsl_col].iloc[i-1] and df["close"].iloc[i] > df[tsl_col].iloc[i]:
+            pos[i] = 1
+        elif df["close"].iloc[i-1] >= df[tsl_col].iloc[i-1] and df["close"].iloc[i] < df[tsl_col].iloc[i]:
+            pos[i] = -1
+        else:
+            pos[i] = pos[i-1]
+
+    df[pos_col] = pos
+
+    # ----------------------------
+    # Cleanup
+    # ----------------------------
+    df = df.drop(columns=[
+        "oi","res","sup","res_prev","sup_prev",
+        "avd","avn","prev_close","prev_tsl"
+    ], errors="ignore")
+
     return df
 
-def ut_bot_alerts(candles, key_value=1, atr_period=10, use_heikin_ashi=False):
-    if not candles:
-        return None
 
-    df = pd.DataFrame(
-        candles,
-        columns=["ts", "open", "high", "low", "close", "volume", "oi"]
-    )
-    # ----------------------------
-    # Force correct dtypes early
-    # ----------------------------
-    df["ts"] = pd.to_datetime(df["ts"], errors="coerce")
-    df["candleType"] = np.where(df["close"] > df["open"], "Bull", "Bear")
-    df["body_size"] = (df["close"] - df["open"]).abs()
-    df["body_threshold"] = df["close"] * 0.0025
-    df["is_strong"] = df["body_size"] >= df["body_threshold"]
-
-    numeric_cols = ["open", "high", "low", "close", "volume", "oi"]
-    df[numeric_cols] = df[numeric_cols].apply(pd.to_numeric, errors="coerce")
-
-    df = df.sort_values("ts").reset_index(drop=True)
+def ut_bot_alerts(df, prefix="2ut", key_value=1, atr_period=10, use_heikin_ashi=False):
 
     data = df.copy()
+    tsl_col  = f"{prefix}_tsl"
+    buy_col  = f"{prefix}_buy"
+    sell_col = f"{prefix}_sell"
+    pos_col  = f"{prefix}_pos"
     
-
     # --- Heikin Ashi (optional) ---
     if use_heikin_ashi:
         ha = pd.DataFrame(index=data.index)
@@ -160,10 +158,16 @@ def ut_bot_alerts(candles, key_value=1, atr_period=10, use_heikin_ashi=False):
 
     # --- Output ---
     result = data.copy()
-    result['atr'] = atr
-    result['tsl'] = trailing_stop
-    result['pos'] = pos
-    result['buy'] = buy
-    result['sell'] = sell
-    result = result.drop(columns=["oi"])
+    # result['2ut_atr'] = atr
+    # result['2ut_tsl'] = trailing_stop
+    # result['2ut_buy'] = buy
+    # result['2ut_sell'] = sell
+    # result['2ut_pos'] = pos
+    result[tsl_col] = trailing_stop
+    result[buy_col] = buy
+    result[sell_col] = sell
+    result[pos_col] = pos
+    
+    if "oi" in df.columns:
+        result = result.drop(columns=["oi"])
     return result

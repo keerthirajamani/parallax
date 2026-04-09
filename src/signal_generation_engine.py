@@ -6,7 +6,8 @@ import pandas as pd
 from src.utils.common_utils import (
     apply_trailing_sl,
     fetch_candles,
-    nse_market_status
+    nse_market_status,
+    convert_candles_to_df
 )
 from src.utils.indicators import three_horse_crow_pandas, ut_bot_alerts
 from src.utils.webhook_trigger import webhook_handler
@@ -25,54 +26,62 @@ def get_data(symbol: str, unit: str, interval: int, symbol_map: dict):
     instrument = symbol_map[symbol]
     print(f"------ instrument ------{symbol}------")
     all_candles = fetch_candles(instrument, unit, interval)
-    # df = three_horse_crow_pandas(all_candles, 3)
-    df = ut_bot_alerts(all_candles)
-    df = apply_trailing_sl(df)
+    df = convert_candles_to_df(all_candles)
+    df = three_horse_crow_pandas(df)
+    # df = ut_bot_alerts(df)
     df["symbol"] = symbol
+    df = apply_trailing_sl(df)
     print(df.tail(40).to_string())
+    # sys.exit("Planned")
     # file_path = "/Users/keerthirajamani/Downloads/data/threehorsecrow_1h.csv"
-    file_path = "/Users/keerthirajamani/Downloads/data/utbot_1h.csv"
-    df.to_csv(file_path, mode="a", header=not os.path.exists(file_path), index=True)
+    # file_path = "/Users/keerthirajamani/Downloads/haha/both_1h.csv"
+    # df.to_csv(file_path, mode="a", header=not os.path.exists(file_path), index=True)
     signals = build_signals_from_last_row(df)
     return signals
 
-def build_signals_from_last_row(df):
+
+
+def build_signals_from_last_row(df, prefixes=("3hc", "2ut")):
 
     if df.empty:
         return []
 
     if "ts" in df.columns:
-        print("Setting ts")
         df["ts"] = pd.to_datetime(df["ts"])
         df = df.set_index("ts")
     else:
-        # assume already index
         df.index = pd.to_datetime(df.index)
-        print('Else')
 
-    last = df.iloc[-1]
+    last = df.iloc[-6]
     signals = []
 
-    base_payload = {
-        "symbol": last["symbol"],
-        # "exchange_token": last["exchange_token"],
-        "close": float(last["close"]),
-        "tsl": last["tsl"],
-        # "timestamp": last["ts"].isoformat(),
-        "timestamp": last.name.isoformat(),
-    }
+    for prefix in prefixes:
+        tsl_col  = f"{prefix}_tsl"
+        buy_col  = f"{prefix}_buy"
+        sell_col = f"{prefix}_sell"
+        sl_col   = f"{prefix}_sl"
 
-    if last["sl_hit"]:
-        signals.append({**base_payload, "signal_type": "sl"})
+        if tsl_col not in df.columns:
+            continue
 
-    if last["buy"]:
-        signals.append({**base_payload, "signal_type": "buy"})
+        base_payload = {
+            "symbol": last["symbol"],
+            "indicator": prefix,
+            "close": float(last["close"]),
+            "tsl": last[tsl_col],
+            "timestamp": last.name.isoformat(),
+        }
 
-    elif last["sell"]:
-        signals.append({**base_payload, "signal_type": "sell"})
+        if sl_col in df.columns and last[sl_col]:
+            signals.append({**base_payload, "signal_type": "sl"})
+
+        if buy_col in df.columns and last[buy_col]:
+            signals.append({**base_payload, "signal_type": "buy"})
+
+        elif sell_col in df.columns and last[sell_col]:
+            signals.append({**base_payload, "signal_type": "sell"})
 
     return signals
-
 
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_columns", None)
@@ -120,6 +129,6 @@ def lambda_handler(event, context):
         # webhoook_results.append(event_payload)
     print("Webhook results", json.dumps(webhoook_results, indent=2))
     return True
-# event = {"unit":"hours", "interval":1, "entity": "INDEX"}
+event = {"unit":"hours", "interval":1, "entity": "INDEX"}
 # event = {"unit":"days", "interval":1, "entity": "EQUITY"}
 # print(lambda_handler(event,None))
