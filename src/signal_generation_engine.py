@@ -49,7 +49,7 @@ def build_signals_from_last_row(df, prefixes=("3hc", "2ut")):
     else:
         df.index = pd.to_datetime(df.index)
 
-    last = df.iloc[-1]
+    last = df.iloc[-6]
     signals = []
 
     for prefix in prefixes:
