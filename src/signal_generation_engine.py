@@ -28,12 +28,11 @@ def get_data(symbol: str, unit: str, interval: int, symbol_map: dict):
     all_candles = fetch_candles(instrument, unit, interval)
     df = convert_candles_to_df(all_candles)
     df = three_horse_crow(df)
-    # df = ut_bot_alerts(df)
+    df = ut_bot_alerts(df)
     df["symbol"] = symbol
     df = apply_trailing_sl(df)
     print(df.tail(60).to_string())
     signals = build_signals_from_last_row(df)
-    # sys.exit("Planned Exit")
     return signals
 
 
@@ -49,7 +48,7 @@ def build_signals_from_last_row(df, prefixes=("3hc", "2ut")):
     else:
         df.index = pd.to_datetime(df.index)
 
-    last = df.iloc[-6]
+    last = df.iloc[-1]
     signals = []
 
     for prefix in prefixes:
