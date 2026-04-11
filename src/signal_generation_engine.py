@@ -56,7 +56,7 @@ def build_signals_from_last_row(df, prefixes=("3hc", "2ut")):
         tsl_col  = f"{prefix}_tsl"
         buy_col  = f"{prefix}_buy"
         sell_col = f"{prefix}_sell"
-        sl_col   = f"{prefix}_sl"
+        sl_col   = f"{prefix}_sl_hit"
 
         if tsl_col not in df.columns:
             continue
