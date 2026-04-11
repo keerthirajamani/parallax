@@ -31,12 +31,9 @@ def get_data(symbol: str, unit: str, interval: int, symbol_map: dict):
     # df = ut_bot_alerts(df)
     df["symbol"] = symbol
     df = apply_trailing_sl(df)
-    print(df.tail(40).to_string())
-    # sys.exit("Planned")
-    # file_path = "/Users/keerthirajamani/Downloads/data/threehorsecrow_1h.csv"
-    # file_path = "/Users/keerthirajamani/Downloads/haha/both_1h.csv"
-    # df.to_csv(file_path, mode="a", header=not os.path.exists(file_path), index=True)
+    print(df.tail(60).to_string())
     signals = build_signals_from_last_row(df)
+    # sys.exit("Planned Exit")
     return signals
 
 
@@ -52,7 +49,7 @@ def build_signals_from_last_row(df, prefixes=("3hc", "2ut")):
     else:
         df.index = pd.to_datetime(df.index)
 
-    last = df.iloc[-6]
+    last = df.iloc[-1]
     signals = []
 
     for prefix in prefixes:
@@ -93,11 +90,11 @@ pd.set_option("display.max_colwidth", None)
 def lambda_handler(event, context):
     market_status = nse_market_status()
     print("market_status ",market_status)
-    if market_status != "NORMAL_OPEN":
-        return {
-            "status": "skipped",
-            "message": f"Market status: {market_status}"
-        }
+    # if market_status != "NORMAL_OPEN":
+    #     return {
+    #         "status": "skipped",
+    #         "message": f"Market status: {market_status}"
+    #     }
     webhoook_results = []
     unit = event.get("unit")
     interval =  event.get("interval")
