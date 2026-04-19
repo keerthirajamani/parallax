@@ -32,17 +32,17 @@ def three_horse_crow(df, prefix='3hc', swing=3):
     df["prev_tsl"] = df[tsl_col].shift(1)
 
     df[buy_col] = (
-        (df["close"] > df[tsl_col]) &
-        (df["prev_close"] <= df["prev_tsl"]) &
-        (df["candleType"] == "Bull") &
-        df["is_strong"]
+        (df["close"] > df[tsl_col]) 
+        & (df["prev_close"] <= df["prev_tsl"]) 
+        # & (df["candleType"] == "Bull") 
+        # & df["is_strong"]
     )
 
     df[sell_col] = (
-        (df["close"] < df[tsl_col]) &
-        (df["prev_close"] >= df["prev_tsl"]) &
-        (df["candleType"] == "Bear") &
-        df["is_strong"]
+        (df["close"] < df[tsl_col]) 
+        & (df["prev_close"] >= df["prev_tsl"]) 
+        # & (df["candleType"] == "Bear") 
+        # & df["is_strong"]
     )
     
     df = df.drop(columns=[
@@ -113,17 +113,17 @@ def ut_bot_alerts(df, prefix="2ut", key_value=1, atr_period=10, use_heikin_ashi=
     result["prev_tsl"]   = trailing_stop.shift(1)
 
     result[buy_col] = (
-        (result["close"] > result[tsl_col]) &
-        (result["prev_close"] <= result["prev_tsl"]) &
-        (result["candleType"] == "Bull") &
-        result["is_strong"]
+        (result["close"] > result[tsl_col]) 
+        & (result["prev_close"] <= result["prev_tsl"]) 
+        # & (result["candleType"] == "Bull") 
+        # & result["is_strong"]
     )
 
     result[sell_col] = (
-        (result["close"] < result[tsl_col]) &
-        (result["prev_close"] >= result["prev_tsl"]) &
-        (result["candleType"] == "Bear") &
-        result["is_strong"]
+        (result["close"] < result[tsl_col]) 
+        & (result["prev_close"] >= result["prev_tsl"]) 
+        # & (result["candleType"] == "Bear") 
+        # & result["is_strong"]
     )
 
     result = result.drop(columns=["prev_close", "prev_tsl"], errors="ignore")

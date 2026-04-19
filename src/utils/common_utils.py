@@ -60,14 +60,14 @@ def get_date_range(unit: str, interval: str):
 
     return start_date, end_date
 
-upstox_access_token ="eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIzUkNLNTYiLCJqdGkiOiI2OWM3N2JlMmVmZmU0ODJmNzA5NmM0YzIiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlzRXh0ZW5kZWQiOnRydWUsImlhdCI6MTc3NDY4MTA1OCwiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxODA2MjcxMjAwfQ.tOVcAfz7htW1OPhPQdxvmu-Uc5HviBvDu3lFYTyUjdg"
-HEADERS = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'Authorization': f'Bearer {upstox_access_token}'
-}
+# upstox_access_token ="eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIzUkNLNTYiLCJqdGkiOiI2OWM3N2JlMmVmZmU0ODJmNzA5NmM0YzIiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlzRXh0ZW5kZWQiOnRydWUsImlhdCI6MTc3NDY4MTA1OCwiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxODA2MjcxMjAwfQ.tOVcAfz7htW1OPhPQdxvmu-Uc5HviBvDu3lFYTyUjdg"
+# HEADERS = {
+#     'Content-Type': 'application/json',
+#     'Accept': 'application/json',
+#     'Authorization': f'Bearer {upstox_access_token}'
+# }
 
-def nse_market_status():
+def nse_market_status(HEADERS):
     url = 'https://api.upstox.com/v2/market/status/NSE'
     try:
         response = requests.get(url, headers=HEADERS)
@@ -79,7 +79,7 @@ def nse_market_status():
     except Exception as e:
         raise RuntimeError(f"NSE status check failed: {e}")
 
-def get_historical(instrument, from_date, to_date, unit, interval):
+def get_historical(instrument, from_date, to_date, unit, interval,HEADERS):
     url = f"https://api.upstox.com/v3/historical-candle/{instrument}/{unit}/{interval}/{to_date}/{from_date}"
     response = requests.get(url, headers=HEADERS)
     if response.status_code == 200:
@@ -88,7 +88,7 @@ def get_historical(instrument, from_date, to_date, unit, interval):
         print(f"Historical Error: {response.status_code} - {response.text}")
         return []
 
-def get_intraday(instrument, unit, interval):
+def get_intraday(instrument, unit, interval,HEADERS):
     url = f"https://api.upstox.com/v3/historical-candle/intraday/{instrument}/{unit}/{interval}"
     response = requests.get(url, headers=HEADERS)
     if response.status_code == 200:
@@ -97,28 +97,28 @@ def get_intraday(instrument, unit, interval):
         print(f"Intraday Error: {response.status_code} - {response.text}")
         return []
     
-def fetch_candles(instrument: str, unit: str, interval: str):
+def fetch_candles(instrument: str, unit: str, interval: str, headers, entity: str = None):
     start_date, end_date = get_date_range(unit, interval)
-    print(f"Fetching historical: {start_date} → {end_date}")
-    
+
     resp = get_historical(
         instrument,
         start_date.strftime("%Y-%m-%d"),
         end_date.strftime("%Y-%m-%d"),
         unit,
-        interval
+        interval,
+        headers
     )
-    # print("resp", resp)
-    hist = resp#.data.candles if resp and resp.data else []
+    hist = resp
 
     if unit in ("minutes", "hours", "days"):
-        print("Fetching intraday (today)...")
-        resp_i = get_intraday(instrument, unit, interval)
-        # print("resp_i", resp_i)
-        intra = resp_i#.data.candles if resp_i and resp_i.data else []
+        resp_i = get_intraday(instrument, unit, interval, headers)
+        intra = resp_i
         candles = hist + intra
     else:
         candles = hist
+
+    logger.info("raw_candles instrument=%s total=%d hist=%d intra=%d",
+                instrument, len(candles), len(hist), len(candles) - len(hist))
 
     if not candles:
         return []
@@ -134,6 +134,11 @@ def fetch_candles(instrument: str, unit: str, interval: str):
         ts = datetime.fromisoformat(c[0])  # Upstox gives TZ-aware ISO
         if ts + duration <= now_ist:
             closed.append(c)
+        elif entity == "EQUITY" and ts <= now_ist:
+            closed.append(c)
+
+    logger.info("closed_candles instrument=%s closed=%d dropped=%d",
+                instrument, len(closed), len(candles) - len(closed))
 
     if not closed:
         return []
@@ -205,6 +210,65 @@ def convert_candles_to_df(candles: list) -> pd.DataFrame:
     df = df.sort_values("ts").reset_index(drop=True)
 
     return df
+
+def write_signals_to_s3(results: list, bucket: str, key_prefix: str = "signals") -> str:
+    """
+    Flatten signal generation output and write it as a CSV to S3.
+
+    Each signal becomes one row. Parent fields (mode, unit, interval, exchange,
+    security_id) are repeated on every row belonging to that instrument.
+
+    Returns the S3 key where the file was written.
+    """
+    rows = []
+    for item in results:
+        mode       = item.get("mode", "")
+        unit       = item.get("unit", "")
+        interval   = item.get("interval", "")
+        instrument = item.get("instrument", {})
+        exchange   = instrument.get("exchange", "")
+        security_id = instrument.get("security_id", "")
+
+        for signal in item.get("signals", []):
+            rows.append({
+                "mode":        mode,
+                "unit":        unit,
+                "interval":    interval,
+                "exchange":    exchange,
+                "security_id": security_id,
+                "symbol":      signal.get("symbol", ""),
+                "indicator":   signal.get("indicator", ""),
+                "close":       float(signal.get("close", float("nan"))),
+                "tsl":         float(signal.get("tsl", float("nan"))),
+                "timestamp":   signal.get("timestamp", ""),
+                "signal_type": signal.get("signal_type", ""),
+            })
+
+    if not rows:
+        logger.info("write_signals_to_s3: no rows to write, skipping")
+        return ""
+
+    buf = StringIO()
+    writer = csv.DictWriter(buf, fieldnames=list(rows[0].keys()))
+    writer.writeheader()
+    writer.writerows(rows)
+
+    now_ist = datetime.now(IST)
+    date_str = now_ist.strftime("%Y-%m-%d")
+    ts_str   = now_ist.strftime("%Y%m%dT%H%M%S")
+    s3_key   = f"{key_prefix}/{date_str}/signals_{ts_str}.csv"
+
+    s3 = boto3.client("s3")
+    s3.put_object(
+        Bucket=bucket,
+        Key=s3_key,
+        Body=buf.getvalue().encode("utf-8"),
+        ContentType="text/csv",
+    )
+
+    logger.info("write_signals_to_s3: wrote %d rows to s3://%s/%s", len(rows), bucket, s3_key)
+    return s3_key
+
 
 def apply_trailing_sl(
     df: pd.DataFrame,

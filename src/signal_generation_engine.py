@@ -1,44 +1,56 @@
-import requests, sys, os, json
-from datetime import datetime, timedelta
+import os, sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime
 from zoneinfo import ZoneInfo
+
 import pandas as pd
+import yfinance as yf
 
 from src.utils.common_utils import (
-    apply_trailing_sl,
     fetch_candles,
     nse_market_status,
-    convert_candles_to_df
+    convert_candles_to_df,
+    write_signals_to_s3,
 )
-from src.utils.indicators import three_horse_crow, ut_bot_alerts
-from src.utils.webhook_trigger import webhook_handler
-from src.config.symbols import resolve_symbol_map, SYMBOL_REGISTRY
+from src.utils.indicators import three_horse_crow
+from src.config.symbols import resolve_symbol_map
+
+# ── Constants ─────────────────────────────────────────────────────────────────
 
 IST = ZoneInfo("Asia/Kolkata")
 
-def candles_to_df(candles):
-    df = pd.DataFrame(candles, columns=["datetime", "open", "high", "low", "close", "volume", "oi"])
-    df["datetime"] = pd.to_datetime(df["datetime"])
-    df = df.sort_values("datetime").reset_index(drop=True)
-    df.set_index("datetime", inplace=True)
-    return df
+# Local override — remove before deploying to Lambda
+upstox_access_token = os.environ.get(
+    "UPSTOX_ACCESS_TOKEN",
+    "eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIzUkNLNTYiLCJqdGkiOiI2OWM3N2JlMmVmZmU0ODJmNzA5NmM0YzIiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlzRXh0ZW5kZWQiOnRydWUsImlhdCI6MTc3NDY4MTA1OCwiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxODA2MjcxMjAwfQ.tOVcAfz7htW1OPhPQdxvmu-Uc5HviBvDu3lFYTyUjdg"
+)
 
-def get_data(symbol: str, unit: str, interval: int, symbol_map: dict):
-    instrument = symbol_map[symbol]
-    print(f"------ instrument ------{symbol}------")
-    all_candles = fetch_candles(instrument, unit, interval)
-    df = convert_candles_to_df(all_candles)
-    df = three_horse_crow(df)
-    df = ut_bot_alerts(df)
-    df["symbol"] = symbol
-    df = apply_trailing_sl(df)
-    print(df.tail(60).to_string())
-    signals = build_signals_from_last_row(df)
-    return signals
+HEADERS = {
+    "Content-Type":  "application/json",
+    "Accept":        "application/json",
+    "Authorization": f"Bearer {upstox_access_token}",
+}
+
+US_ENTITIES = {"US_EQUITY", "US_INDEX"}
+
+US_UNIT_TO_INTERVAL = {
+    "days":  "1d",
+    "weeks": "1wk",
+}
+
+US_INTERVAL_CONFIG = {
+    "1d":  {"yf_interval": "1d",  "period": "1y",  "label": "days 1"},
+    "1wk": {"yf_interval": "1wk", "period": "2y",  "label": "weeks 1"},
+}
+
+pd.set_option("display.max_rows", None)
+pd.set_option("display.max_columns", None)
+pd.set_option("display.width", None)
+pd.set_option("display.max_colwidth", None)
 
 
 
 def build_signals_from_last_row(df, prefixes=("3hc", "2ut")):
-
     if df.empty:
         return []
 
@@ -52,79 +64,138 @@ def build_signals_from_last_row(df, prefixes=("3hc", "2ut")):
     signals = []
 
     for prefix in prefixes:
-        tsl_col  = f"{prefix}_tsl"
-        buy_col  = f"{prefix}_buy"
-        sell_col = f"{prefix}_sell"
-        sl_col   = f"{prefix}_sl_hit"
-
-        if tsl_col not in df.columns:
+        if f"{prefix}_tsl" not in df.columns:
             continue
 
-        base_payload = {
-            "symbol": last["symbol"],
+        base = {
+            "symbol":    last["symbol"],
             "indicator": prefix,
-            "close": float(last["close"]),
-            "tsl": last[tsl_col],
+            "close":     float(last["close"]),
+            "tsl":       last[f"{prefix}_tsl"],
             "timestamp": last.name.isoformat(),
         }
 
-        if sl_col in df.columns and last[sl_col]:
-            signals.append({**base_payload, "signal_type": "sl"})
+        if f"{prefix}_sl_hit" in df.columns and last[f"{prefix}_sl_hit"]:
+            signals.append({**base, "signal_type": "sl"})
 
-        if buy_col in df.columns and last[buy_col]:
-            signals.append({**base_payload, "signal_type": "buy"})
-
-        elif sell_col in df.columns and last[sell_col]:
-            signals.append({**base_payload, "signal_type": "sell"})
+        if f"{prefix}_buy" in df.columns and last[f"{prefix}_buy"]:
+            signals.append({**base, "signal_type": "buy"})
+        elif f"{prefix}_sell" in df.columns and last[f"{prefix}_sell"]:
+            signals.append({**base, "signal_type": "sell"})
 
     return signals
 
-pd.set_option("display.max_rows", None)
-pd.set_option("display.max_columns", None)
-pd.set_option("display.width", None)
-pd.set_option("display.max_colwidth", None)
+
+def _fetch_india_symbol(symbol: str, unit: str, interval: int, symbol_map: dict, entity: str):
+    sym = symbol_map[symbol]
+    instrument = f"{sym['exchange']}|{sym['isin']}"
+    df = convert_candles_to_df(fetch_candles(instrument, unit, interval, HEADERS, entity))
+    df = three_horse_crow(df)
+    df["symbol"] = symbol
+    return symbol, build_signals_from_last_row(df)
 
 
+def get_india_signals(symbol_map: dict, unit: str, interval: int, entity: str) -> dict:
+    print(f"Fetching {len(symbol_map)} India symbols [{unit} {interval}]")
+    results = {}
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {
+            executor.submit(_fetch_india_symbol, sym, unit, interval, symbol_map, entity): sym
+            for sym in symbol_map
+        }
+        for future in as_completed(futures):
+            symbol, signals = future.result()
+            results[symbol] = signals
+    return results
 
-def lambda_handler(event, context):
-    market_status = nse_market_status()
-    print("market_status ",market_status)
-    # if market_status != "NORMAL_OPEN":
-    #     return {
-    #         "status": "skipped",
-    #         "message": f"Market status: {market_status}"
-    #     }
-    webhoook_results = []
-    unit = event.get("unit")
-    interval =  event.get("interval")
-    entity =  event.get("entity")
-    print("Unit is ",unit)
-    print("interval is ",interval)
 
-    Symbols = resolve_symbol_map(entity)
-    print("Symbols", Symbols)
-    print("current time:", datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S %Z"))
-    
-    for Symbol in Symbols:
-        signals = get_data(Symbol, unit, interval, Symbols)
+def _process_us_ticker(symbol: str, df: pd.DataFrame):
+    if df is None or df.empty:
+        return symbol, []
+    df = df[["Open", "High", "Low", "Close", "Volume"]].copy()
+    df.rename(columns={"Open": "open", "High": "high", "Low": "low", "Close": "close", "Volume": "volume"}, inplace=True)
+    df.index = df.index.tz_localize(None)
+    df.index.name = "datetime"
+    df = df.round(4).dropna()
+    df["symbol"] = symbol
+    df = three_horse_crow(df)
+    return symbol, build_signals_from_last_row(df)
+
+
+def get_us_signals(symbol_map: dict, interval: str = "1d") -> dict:
+    cfg = US_INTERVAL_CONFIG.get(interval, US_INTERVAL_CONFIG["1d"])
+    tickers = [symbol_map[s]["ticker"] for s in symbol_map]
+    print(f"Batch fetching {len(tickers)} US tickers [{cfg['label']}]")
+
+    raw = yf.download(
+        tickers,
+        period=cfg["period"],
+        interval=cfg["yf_interval"],
+        group_by="ticker",
+        auto_adjust=True,
+        progress=False,
+        threads=True,
+    )
+
+    results = {}
+    for symbol in symbol_map:
+        ticker = symbol_map[symbol]["ticker"]
+        ticker_df = raw[ticker] if len(tickers) > 1 else raw
+        sym, signals = _process_us_ticker(symbol, ticker_df)
+        results[sym] = signals
+    return results
+
+
+def lambda_handler(event, _context):
+    entity   = event.get("entity")
+    unit     = event.get("unit")
+    interval = event.get("interval")
+    is_us    = entity.upper() in US_ENTITIES
+
+    print(f"entity={entity} | unit={unit} | interval={interval} | time={datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S %Z')}")
+
+    if not is_us:
+        print("market_status:", nse_market_status(HEADERS))
+        # if market_status != "NORMAL_OPEN":
+        #     return {"status": "skipped", "message": f"Market status: {market_status}"}
+
+    symbol_map  = resolve_symbol_map(entity)
+    us_interval = US_UNIT_TO_INTERVAL.get(unit) if is_us else None
+
+    signals_map = (
+        get_us_signals(symbol_map, interval=us_interval)
+        if is_us else
+        get_india_signals(symbol_map, unit, interval, entity)
+    )
+
+    results = []
+    for symbol, signals in signals_map.items():
         if not signals:
-            print("No Signal  for symbol ", Symbol)
-            print("")
-            print("")
+            print(f"No signal: {symbol}")
             continue
-        event_payload = {
-            "mode": entity,
-            "unit": unit,
-            "instrument": Symbols[Symbol],
-            "interval":interval,
-            "signals": signals,
-            }
-        print("Event Payload is ",event_payload)
-        
-        webhoook_results.append(webhook_handler(event_payload, None))
-        # webhoook_results.append(event_payload)
-    print("Webhook results", json.dumps(webhoook_results, indent=2))
-    return True
-event = {"unit":"hours", "interval":1, "entity": "INDEX"}
-# event = {"unit":"days", "interval":1, "entity": "EQUITY"}
-# print(lambda_handler(event,None))
+        else:
+            print(f"signal : {symbol}")
+        results.append({
+            "mode":       entity,
+            "unit":       unit,
+            "instrument": symbol_map[symbol],
+            "interval":   us_interval if is_us else interval,
+            "signals":    signals,
+        })
+
+    if results:
+        SIGNALS_BUCKET = os.environ.get("SIGNALS_BUCKET", "nse-artifacts")
+        key_prefix = f"us-signals/{unit}" if is_us else "equity-signals"
+        write_signals_to_s3(results, bucket=SIGNALS_BUCKET, key_prefix=key_prefix)
+
+    return results
+
+
+# ── Local test ────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    # event = {"unit": "hours",  "interval": 1, "entity": "INDEX"}
+    # event = {"unit": "days",   "interval": 1, "entity": "EQUITY"}
+    # event = {"unit": "days",   "interval": 1, "entity": "US_EQUITY"}
+    # event = {"unit": "weeks",  "interval": 1, "entity": "US_EQUITY"}
+    event = {"unit": "days", "interval": 1, "entity": "US_EQUITY"}
+    print(lambda_handler(event, None))
