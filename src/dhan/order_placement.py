@@ -1,6 +1,6 @@
 from dhanhq import dhanhq
 
-dhan = dhanhq("1107245176","eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzc2MzEzNjk3LCJpYXQiOjE3NzYyMjcyOTcsInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA3MjQ1MTc2In0.824WqWnwaKFRgUqPQR0QCg0Fcz4cS76fkqC1H9k6MMqJqBDfMn3swpVxAvKgrPa3qpVVigG2WYuGcxDRmBB4QQ")
+dhan = dhanhq("i am id")
 
 
 # Place an order for Equity Cash

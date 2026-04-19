@@ -1,4 +1,4 @@
-import os, sys
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -19,11 +19,9 @@ from src.config.symbols import resolve_symbol_map
 
 IST = ZoneInfo("Asia/Kolkata")
 
-# Local override — remove before deploying to Lambda
+
 upstox_access_token = os.environ.get(
-    "UPSTOX_ACCESS_TOKEN",
-    "eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIzUkNLNTYiLCJqdGkiOiI2OWM3N2JlMmVmZmU0ODJmNzA5NmM0YzIiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlzRXh0ZW5kZWQiOnRydWUsImlhdCI6MTc3NDY4MTA1OCwiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxODA2MjcxMjAwfQ.tOVcAfz7htW1OPhPQdxvmu-Uc5HviBvDu3lFYTyUjdg"
-)
+    "UPSTOX_ACCESS_TOKEN")
 
 HEADERS = {
     "Content-Type":  "application/json",
@@ -88,7 +86,7 @@ def build_signals_from_last_row(df, prefixes=("3hc", "2ut")):
 
 def _fetch_india_symbol(symbol: str, unit: str, interval: int, symbol_map: dict, entity: str):
     sym = symbol_map[symbol]
-    instrument = f"{sym['exchange']}|{sym['isin']}"
+    instrument = f"{sym['exchange']}|{sym['isin']}" if "isin" in sym else sym["exchange"]
     df = convert_candles_to_df(fetch_candles(instrument, unit, interval, HEADERS, entity))
     df = three_horse_crow(df)
     df["symbol"] = symbol
@@ -185,7 +183,7 @@ def lambda_handler(event, _context):
 
     if results:
         SIGNALS_BUCKET = os.environ.get("SIGNALS_BUCKET", "nse-artifacts")
-        key_prefix = f"us-signals/{unit}" if is_us else "equity-signals"
+        key_prefix = f"us-signals/{unit}" if is_us else f"equity-signals/{unit}"
         write_signals_to_s3(results, bucket=SIGNALS_BUCKET, key_prefix=key_prefix)
 
     return results
@@ -194,8 +192,8 @@ def lambda_handler(event, _context):
 # ── Local test ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     # event = {"unit": "hours",  "interval": 1, "entity": "INDEX"}
-    # event = {"unit": "days",   "interval": 1, "entity": "EQUITY"}
+    event = {"unit": "weeks",   "interval": 1, "entity": "EQUITY"}
     # event = {"unit": "days",   "interval": 1, "entity": "US_EQUITY"}
     # event = {"unit": "weeks",  "interval": 1, "entity": "US_EQUITY"}
-    event = {"unit": "days", "interval": 1, "entity": "US_EQUITY"}
+    # event = {"unit": "days", "interval": 1, "entity": "US_EQUITY"}
     print(lambda_handler(event, None))
