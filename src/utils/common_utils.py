@@ -382,3 +382,9 @@ def apply_trailing_sl(
         df[sl_col]    = sl_arr
 
     return df
+
+def get_token_from_s3(S3_BUCKET,S3_KEY):
+    s3 = boto3.client("s3")
+    response = s3.get_object(Bucket=S3_BUCKET, Key=S3_KEY)
+    data = json.loads(response["Body"].read().decode("utf-8"))
+    return data["token"]

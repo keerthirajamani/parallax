@@ -12,4 +12,4 @@ RUN pip install --upgrade pip \
 # Copy your function code
 COPY src/ src/
 
-CMD ["src.signal_generation_engine.lambda_handler"]
+CMD ["src.signals.signal_generation_engine.lambda_handler"]

@@ -1,16 +1,48 @@
 from dhanhq import dhanhq
+import os,sys
+import numpy as np
+from src.utils.common_utils import (
+    get_token_from_s3,
+)
 
-dhan = dhanhq("i am id")
+S3_BUCKET = os.environ.get("BUCKET", "nse-artifacts")
+S3_KEY="dhan/token.json"
+
+DHAN_CLIENT_ID = os.environ.get("DHAN_CLIENT_ID","1107245176")
+access_token = get_token_from_s3(S3_BUCKET, S3_KEY)
+
+dhan = dhanhq(DHAN_CLIENT_ID,access_token)
+
+signals = [{'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE795G01014', 'security_id': '467'}, 'interval': 1, 'signals': [{'symbol': 'HDFCLIFE', 'indicator': '2ut', 'close': 616.45, 'tsl': np.float64(637.255), 'timestamp': '2026-04-17T00:00:00+05:30', 'signal_type': 'sell'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE154A01025', 'security_id': '1660'}, 'interval': 1, 'signals': [{'symbol': 'ITC', 'indicator': '3hc', 'close': 306.8, 'tsl': np.float64(300.55), 'timestamp': '2026-04-17T00:00:00+05:30', 'signal_type': 'buy'}, {'symbol': 'ITC', 'indicator': '2ut', 'close': 306.8, 'tsl': np.float64(301.77500000000003), 'timestamp': '2026-04-17T00:00:00+05:30', 'signal_type': 'buy'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE002A01018', 'security_id': '2885'}, 'interval': 1, 'signals': [{'symbol': 'RELIANCE', 'indicator': '3hc', 'close': 1365.0, 'tsl': np.float64(1330.0), 'timestamp': '2026-04-17T00:00:00+05:30', 'signal_type': 'buy'}]}]
 
 
+buy_signals = [
+    {**s, 'signals': [sig for sig in s['signals'] if sig['signal_type'] == 'buy']}
+    for s in signals
+    if any(sig['signal_type'] == 'buy' for sig in s['signals'])
+]
+
+sell_signals = [
+    {**s, 'signals': [sig for sig in s['signals'] if sig['signal_type'] == 'sell']}
+    for s in signals
+    if any(sig['signal_type'] == 'sell' for sig in s['signals'])
+]
+print("buy_signals", buy_signals)
+
+for buy in buy_signals:
+    print("buy is ", buy)
+    print("security_id is",buy['instrument']['security_id'])
+    sys.exit("Planned Exit")
+    print(dhan.place_order(security_id='11184',            # HDFC Bank
+    exchange_segment=dhan.NSE,
+    transaction_type=dhan.BUY,
+    quantity=1,
+    order_type=dhan.MARKET,
+    product_type=dhan.CNC,
+    price=0))
+    sys.exit("Planned Exit")
 # Place an order for Equity Cash
-# print(dhan.place_order(security_id='11184',            # HDFC Bank
-#     exchange_segment=dhan.NSE,
-#     transaction_type=dhan.BUY,
-#     quantity=1,
-#     order_type=dhan.MARKET,
-#     product_type=dhan.CNC,
-#     price=0))
+
     
 
   

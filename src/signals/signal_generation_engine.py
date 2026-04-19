@@ -12,7 +12,7 @@ from src.utils.common_utils import (
     convert_candles_to_df,
     write_signals_to_s3,
 )
-from src.utils.indicators import three_horse_crow
+from src.utils.indicators import three_horse_crow, ut_bot_alerts
 from src.config.symbols import resolve_symbol_map
 
 # ── Constants ─────────────────────────────────────────────────────────────────
@@ -21,7 +21,7 @@ IST = ZoneInfo("Asia/Kolkata")
 
 
 upstox_access_token = os.environ.get(
-    "UPSTOX_ACCESS_TOKEN")
+    "UPSTOX_ACCESS_TOKEN","eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIzUkNLNTYiLCJqdGkiOiI2OWM3N2JlMmVmZmU0ODJmNzA5NmM0YzIiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlzRXh0ZW5kZWQiOnRydWUsImlhdCI6MTc3NDY4MTA1OCwiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxODA2MjcxMjAwfQ.tOVcAfz7htW1OPhPQdxvmu-Uc5HviBvDu3lFYTyUjdg")
 
 HEADERS = {
     "Content-Type":  "application/json",
@@ -89,6 +89,7 @@ def _fetch_india_symbol(symbol: str, unit: str, interval: int, symbol_map: dict,
     instrument = f"{sym['exchange']}|{sym['isin']}" if "isin" in sym else sym["exchange"]
     df = convert_candles_to_df(fetch_candles(instrument, unit, interval, HEADERS, entity))
     df = three_horse_crow(df)
+    df = ut_bot_alerts(df)
     df["symbol"] = symbol
     return symbol, build_signals_from_last_row(df)
 
@@ -117,6 +118,7 @@ def _process_us_ticker(symbol: str, df: pd.DataFrame):
     df = df.round(4).dropna()
     df["symbol"] = symbol
     df = three_horse_crow(df)
+    df = ut_bot_alerts(df)
     return symbol, build_signals_from_last_row(df)
 
 
@@ -191,9 +193,8 @@ def lambda_handler(event, _context):
 
 # ── Local test ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    # event = {"unit": "hours",  "interval": 1, "entity": "INDEX"}
-    event = {"unit": "weeks",   "interval": 1, "entity": "EQUITY"}
-    # event = {"unit": "days",   "interval": 1, "entity": "US_EQUITY"}
-    # event = {"unit": "weeks",  "interval": 1, "entity": "US_EQUITY"}
+    event = {"unit": "days",  "interval": 1, "entity": "EQUITY"}
+    # event = {"unit": "weeks",   "interval": 1, "entity": "EQUITY"}
     # event = {"unit": "days", "interval": 1, "entity": "US_EQUITY"}
+    # event = {"unit": "weeks",  "interval": 1, "entity": "US_EQUITY"}
     print(lambda_handler(event, None))
