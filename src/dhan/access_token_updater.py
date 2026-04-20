@@ -13,7 +13,15 @@ def get_token_from_s3():
     data = json.loads(response["Body"].read().decode("utf-8"))
     return data["token"]
 
+def is_error_response(response):
+    if 'errorType' in response or 'errorCode' in response:
+        print(f"Error: {response.get('errorCode')} - {response.get('errorMessage')}")
+        return True
+    return False
+
 def lambda_handler(event, context):
+    print("DHAN_CLIENT_ID",DHAN_CLIENT_ID)
+    print("S3_BUCKET",S3_BUCKET)
     ACCESS_TOKEN = get_token_from_s3()
 
     result = subprocess.run([
@@ -25,7 +33,12 @@ def lambda_handler(event, context):
     ], capture_output=True, text=True)
 
     response = json.loads(result.stdout)
-    new_token = response["token"]
+    try:
+        if 'errorCode' in response:
+            raise Exception(f"{response['errorCode']} - {response['errorMessage']}")
+        new_token = response["token"]
+    except Exception as e:
+        print(f"Error: {e}")
 
     s3 = boto3.client("s3")
     s3.put_object(
