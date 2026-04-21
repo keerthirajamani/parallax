@@ -1,11 +1,12 @@
-import subprocess
 import json
 import boto3
 import os
+import requests
 
 DHAN_CLIENT_ID = os.environ.get("DHAN_CLIENT_ID")
 S3_BUCKET = os.environ.get("BUCKET", "nse-artifacts")
 S3_KEY = "dhan/token.json"
+
 
 def get_token_from_s3():
     s3 = boto3.client("s3")
@@ -13,32 +14,27 @@ def get_token_from_s3():
     data = json.loads(response["Body"].read().decode("utf-8"))
     return data["token"]
 
-def is_error_response(response):
-    if 'errorType' in response or 'errorCode' in response:
-        print(f"Error: {response.get('errorCode')} - {response.get('errorMessage')}")
-        return True
-    return False
 
 def lambda_handler(event, context):
-    print("DHAN_CLIENT_ID",DHAN_CLIENT_ID)
-    print("S3_BUCKET",S3_BUCKET)
+    print("DHAN_CLIENT_ID", DHAN_CLIENT_ID)
+    print("S3_BUCKET", S3_BUCKET)
     ACCESS_TOKEN = get_token_from_s3()
 
-    result = subprocess.run([
-        "curl",
-        "--location",
+    response = requests.get(
         "https://api.dhan.co/v2/RenewToken",
-        "--header", f"access-token: {ACCESS_TOKEN}",
-        "--header", f"dhanClientId: {DHAN_CLIENT_ID}"
-    ], capture_output=True, text=True)
+        headers={
+            "access-token": ACCESS_TOKEN,
+            "dhanClientId": DHAN_CLIENT_ID,
+            "Content-Type": "application/json",
+        }
+    )
+    response.raise_for_status()
+    data = response.json()
 
-    response = json.loads(result.stdout)
-    try:
-        if 'errorCode' in response:
-            raise Exception(f"{response['errorCode']} - {response['errorMessage']}")
-        new_token = response["token"]
-    except Exception as e:
-        print(f"Error: {e}")
+    if "errorCode" in data:
+        raise Exception(f"{data['errorCode']} - {data['errorMessage']}")
+
+    new_token = data["token"]
 
     s3 = boto3.client("s3")
     s3.put_object(
