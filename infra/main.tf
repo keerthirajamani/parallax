@@ -20,10 +20,6 @@ provider "aws" {
 
 # ── Data ──────────────────────────────────────────────────────────────────────
 
-data "aws_vpc" "default" {
-  default = true
-}
-
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
@@ -34,12 +30,47 @@ data "aws_ami" "amazon_linux" {
   }
 }
 
+# ── VPC ───────────────────────────────────────────────────────────────────────
+
+resource "aws_vpc" "parallax" {
+  cidr_block = "10.0.0.0/16"
+  tags       = { Name = "parallax-vpc" }
+}
+
+resource "aws_subnet" "parallax" {
+  vpc_id                  = aws_vpc.parallax.id
+  cidr_block              = "10.0.1.0/24"
+  map_public_ip_on_launch = true
+  tags                    = { Name = "parallax-subnet" }
+}
+
+resource "aws_internet_gateway" "parallax" {
+  vpc_id = aws_vpc.parallax.id
+  tags   = { Name = "parallax-igw" }
+}
+
+resource "aws_route_table" "parallax" {
+  vpc_id = aws_vpc.parallax.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.parallax.id
+  }
+
+  tags = { Name = "parallax-rt" }
+}
+
+resource "aws_route_table_association" "parallax" {
+  subnet_id      = aws_subnet.parallax.id
+  route_table_id = aws_route_table.parallax.id
+}
+
 # ── Security Group ────────────────────────────────────────────────────────────
 
 resource "aws_security_group" "parallax" {
   name        = "parallax-sg"
   description = "Allow SSH inbound, all outbound"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = aws_vpc.parallax.id
 
   ingress {
     description = "SSH"
@@ -63,6 +94,7 @@ resource "aws_instance" "parallax" {
   ami                    = data.aws_ami.amazon_linux.id
   instance_type          = "t3.nano"
   key_name               = var.key_pair_name
+  subnet_id              = aws_subnet.parallax.id
   vpc_security_group_ids = [aws_security_group.parallax.id]
   iam_instance_profile   = aws_iam_instance_profile.parallax.name
 
@@ -73,8 +105,6 @@ resource "aws_instance" "parallax" {
     systemctl enable docker
     systemctl start docker
     usermod -aG docker ec2-user
-
-    # Install AWS CLI v2 (for ECR login)
     dnf install -y awscli
   EOF
 
