@@ -185,7 +185,7 @@ def lambda_handler(event, _context):
     if results:
         SIGNALS_BUCKET = os.environ.get("SIGNALS_BUCKET", "nse-artifacts")
         key_prefix = f"us-signals/{unit}" if is_us else f"equity-signals/{unit}"
-        # write_signals_to_s3(results, bucket=SIGNALS_BUCKET, key_prefix=key_prefix)
+        write_signals_to_s3(results, bucket=SIGNALS_BUCKET, key_prefix=key_prefix)
 
     return results
 

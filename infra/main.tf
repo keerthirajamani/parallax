@@ -101,11 +101,10 @@ resource "aws_instance" "parallax" {
   user_data = <<-EOF
     #!/bin/bash
     dnf update -y
-    dnf install -y docker
-    systemctl enable docker
-    systemctl start docker
+    dnf install -y docker cronie awscli
+    systemctl enable docker crond
+    systemctl start docker crond
     usermod -aG docker ec2-user
-    dnf install -y awscli
   EOF
 
   tags = {
