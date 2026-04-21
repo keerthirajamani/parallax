@@ -3,7 +3,7 @@ import json
 import boto3
 import os
 
-DHAN_CLIENT_ID = os.environ["DHAN_CLIENT_ID"]
+DHAN_CLIENT_ID = os.environ.get("DHAN_CLIENT_ID")
 S3_BUCKET = os.environ.get("BUCKET", "nse-artifacts")
 S3_KEY = "dhan/token.json"
 

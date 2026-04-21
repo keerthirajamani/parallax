@@ -2,7 +2,7 @@ import sys
 import json
 from dotenv import load_dotenv
 
-load_dotenv("/app/.env")
+load_dotenv()
 
 mode = sys.argv[1]
 

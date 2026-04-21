@@ -20,8 +20,7 @@ from src.config.symbols import resolve_symbol_map
 IST = ZoneInfo("Asia/Kolkata")
 
 
-upstox_access_token = os.environ.get(
-    "UPSTOX_ACCESS_TOKEN","eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIzUkNLNTYiLCJqdGkiOiI2OWM3N2JlMmVmZmU0ODJmNzA5NmM0YzIiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlzRXh0ZW5kZWQiOnRydWUsImlhdCI6MTc3NDY4MTA1OCwiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxODA2MjcxMjAwfQ.tOVcAfz7htW1OPhPQdxvmu-Uc5HviBvDu3lFYTyUjdg")
+upstox_access_token = os.environ.get("UPSTOX_ACCESS_TOKEN")
 
 HEADERS = {
     "Content-Type":  "application/json",

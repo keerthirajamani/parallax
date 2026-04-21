@@ -8,3 +8,4 @@ six==1.17.0
 websockets==15.0.1
 pandas==2.3.3
 python-dotenv
+dhanhq=2.0.2
