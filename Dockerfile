@@ -7,5 +7,6 @@ RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
 COPY src/ src/
+COPY scripts/ scripts/
 
 CMD ["python", "-m", "src.signals.signal_generation_engine"]
