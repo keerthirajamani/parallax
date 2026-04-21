@@ -30,9 +30,10 @@ sell_signals = [
 print("buy_signals", buy_signals)
 
 for buy in buy_signals:
+    print()
     print("buy is ", buy)
     print("security_id is",buy['instrument']['security_id'])
-    sys.exit("Planned Exit")
+    # sys.exit("Planned Exit")
     print(dhan.place_order(security_id='11184',            # HDFC Bank
     exchange_segment=dhan.NSE,
     transaction_type=dhan.BUY,

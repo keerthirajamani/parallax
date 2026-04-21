@@ -1,4 +1,4 @@
-name: Build & Deploy Parallax Lambda
+name: Build & Deploy Parallax to EC2
 
 on:
   push:
@@ -25,7 +25,7 @@ env:
 
 jobs:
   deploy:
-    name: Build, Push & Terraform Deploy
+    name: Build, Push & Deploy to EC2
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'dev' }}
 
@@ -51,18 +51,35 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ steps.meta.outputs.tag }}
-        working-directory: ./
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "Pushed: latest and $IMAGE_TAG"
-      - name: Update Lambda Function Code
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          aws lambda update-function-code \
-            --function-name parallax-signal-lambda \
-            --image-uri $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: AWS_REGION,ECR_REPOSITORY
+          script: |
+            # Login to ECR from EC2
+            aws ecr get-login-password --region $AWS_REGION | \
+              docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+
+            # Pull latest image
+            docker pull ${{ secrets.ECR_REGISTRY }}/$ECR_REPOSITORY:latest
+
+            # Restart container (cron jobs will use the new image on next run)
+            docker stop parallax || true
+            docker rm parallax || true
+            docker run -d \
+              --name parallax \
+              --env-file /app/.env \
+              --restart unless-stopped \
+              ${{ secrets.ECR_REGISTRY }}/$ECR_REPOSITORY:latest
+
+            echo "Deployed successfully"

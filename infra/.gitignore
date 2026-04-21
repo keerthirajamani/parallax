@@ -1,0 +1,10 @@
+# Local state (should be in S3)
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/
+
+# Actual variable values (never commit)
+terraform.tfvars
+
+# Crash logs
+crash.log
