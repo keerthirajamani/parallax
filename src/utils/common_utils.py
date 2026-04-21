@@ -245,7 +245,7 @@ def write_signals_to_s3(results: list, bucket: str, key_prefix: str = "signals")
             })
 
     if not rows:
-        logger.info("write_signals_to_s3: no rows to write, skipping")
+        print("write_signals_to_s3: no rows to write, skipping")
         return ""
 
     buf = StringIO()
@@ -266,7 +266,7 @@ def write_signals_to_s3(results: list, bucket: str, key_prefix: str = "signals")
         ContentType="text/csv",
     )
 
-    logger.info("write_signals_to_s3: wrote %d rows to s3://%s/%s", len(rows), bucket, s3_key)
+    print("write_signals_to_s3: wrote %d rows to s3://%s/%s", len(rows), bucket, s3_key)
     return s3_key
 
 
