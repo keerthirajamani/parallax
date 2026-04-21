@@ -9,4 +9,4 @@ RUN pip install --upgrade pip \
 COPY src/ src/
 COPY scripts/ scripts/
 
-CMD ["python", "-m", "src.signals.signal_generation_engine"]
+CMD ["tail", "-f", "/dev/null"]
