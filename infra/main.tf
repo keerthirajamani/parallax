@@ -20,6 +20,10 @@ provider "aws" {
 
 # ── Data ──────────────────────────────────────────────────────────────────────
 
+data "aws_vpc" "default" {
+  default = true
+}
+
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
@@ -35,6 +39,7 @@ data "aws_ami" "amazon_linux" {
 resource "aws_security_group" "parallax" {
   name        = "parallax-sg"
   description = "Allow SSH inbound, all outbound"
+  vpc_id      = data.aws_vpc.default.id
 
   ingress {
     description = "SSH"
