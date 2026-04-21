@@ -103,11 +103,17 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: AWS_REGION,ECR_REPOSITORY
           script: |
+            # Ensure app directory exists
+            mkdir -p /app
+
+            # Login to ECR
             aws ecr get-login-password --region $AWS_REGION | \
               docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
 
+            # Pull latest image
             docker pull ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
 
+            # Restart container
             docker stop parallax || true
             docker rm parallax || true
             docker run -d \
@@ -115,5 +121,20 @@ jobs:
               --env-file /app/.env \
               --restart unless-stopped \
               ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
+
+            # Create log directory
+            sudo mkdir -p /var/log/parallax
+            sudo chown ec2-user:ec2-user /var/log/parallax
+
+            # Install crontab (idempotent — replaces on every deploy)
+            crontab - << 'CRON'
+            CRON_TZ=Asia/Kolkata
+            26 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"EQUITY"}' >> /var/log/parallax/nse_daily.log 2>&1
+            26 15 * * 5   docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"EQUITY"}' >> /var/log/parallax/nse_weekly.log 2>&1
+            45 8,20 * * * docker exec parallax python scripts/run.py token_refresh >> /var/log/parallax/token_refresh.log 2>&1
+            CRON_TZ=America/New_York
+            54 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_daily.log 2>&1
+            54 15 * * 5   docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_weekly.log 2>&1
+            CRON
 
             echo "Deployed successfully"
