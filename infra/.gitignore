@@ -3,8 +3,7 @@ terraform.tfstate
 terraform.tfstate.backup
 .terraform/
 
-# Actual variable values (never commit)
-terraform.tfvars
+# terraform.tfvars is committed (no sensitive values)
 
 # Crash logs
 crash.log

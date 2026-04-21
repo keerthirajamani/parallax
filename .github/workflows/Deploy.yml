@@ -25,9 +25,45 @@ env:
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
 
 jobs:
+  terraform:
+    name: Provision EC2 via Terraform
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    outputs:
+      ec2_ip: ${{ steps.tf_output.outputs.ec2_ip }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: infra
+        run: terraform apply -auto-approve
+
+      - name: Get EC2 IP
+        id: tf_output
+        working-directory: infra
+        run: echo "ec2_ip=$(terraform output -raw elastic_ip)" >> $GITHUB_OUTPUT
+
   deploy:
     name: Build, Push & Deploy to EC2
     runs-on: ubuntu-latest
+    needs: terraform
     environment: ${{ github.event.inputs.environment || 'dev' }}
 
     steps:
@@ -62,25 +98,22 @@ jobs:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
+          host: ${{ needs.terraform.outputs.ec2_ip }}
+          username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: AWS_REGION,ECR_REPOSITORY
           script: |
-            # Login to ECR from EC2
             aws ecr get-login-password --region $AWS_REGION | \
-              docker login --username AWS --password-stdin ${{ secrets.ECR_REGISTRY }}
+              docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
 
-            # Pull latest image
-            docker pull ${{ secrets.ECR_REGISTRY }}/$ECR_REPOSITORY:latest
+            docker pull ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
 
-            # Restart container (cron jobs will use the new image on next run)
             docker stop parallax || true
             docker rm parallax || true
             docker run -d \
               --name parallax \
               --env-file /app/.env \
               --restart unless-stopped \
-              ${{ secrets.ECR_REGISTRY }}/$ECR_REPOSITORY:latest
+              ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
 
             echo "Deployed successfully"
