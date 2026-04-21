@@ -191,9 +191,9 @@ def lambda_handler(event, _context):
 
 
 # ── Local test ────────────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    event = {"unit": "days",  "interval": 1, "entity": "EQUITY"}
-    # event = {"unit": "weeks",   "interval": 1, "entity": "EQUITY"}
-    # event = {"unit": "days", "interval": 1, "entity": "US_EQUITY"}
-    # event = {"unit": "weeks",  "interval": 1, "entity": "US_EQUITY"}
-    print(lambda_handler(event, None))
+# if __name__ == "__main__":
+#     event = {"unit": "days",  "interval": 1, "entity": "EQUITY"}
+#     # event = {"unit": "weeks",   "interval": 1, "entity": "EQUITY"}
+#     # event = {"unit": "days", "interval": 1, "entity": "US_EQUITY"}
+#     # event = {"unit": "weeks",  "interval": 1, "entity": "US_EQUITY"}
+#     print(lambda_handler(event, None))
