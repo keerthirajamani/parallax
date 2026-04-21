@@ -55,13 +55,18 @@ mode = sys.argv[1]
 
 if mode == "signals":
     from src.signals.signal_generation_engine import lambda_handler
+    # TODO: from src.dhan.order_placement import place_orders
     event = json.loads(sys.argv[2])
+    place_orders = "--place-orders" in sys.argv
     entity = event.get("entity", "unknown").lower()
     unit = event.get("unit", "unknown").lower()
 
     def run_signals():
         result = lambda_handler(event, None)
         print(f"signals result: {json.dumps(result, default=str, indent=2)}")
+        if place_orders:
+            print("placing orders...")
+            # TODO: place_orders(result)
 
     run_with_logging(f"{entity}_{unit}", run_signals)
 

@@ -6,3 +6,7 @@ output "elastic_ip" {
 output "instance_id" {
   value = aws_instance.parallax.id
 }
+
+output "instance_name" {
+  value = aws_instance.parallax.tags["Name"]
+}

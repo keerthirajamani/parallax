@@ -58,7 +58,10 @@ jobs:
       - name: Get EC2 IP
         id: tf_output
         working-directory: infra
-        run: echo "ec2_ip=$(terraform output -raw elastic_ip)" >> $GITHUB_OUTPUT
+        run: |
+          echo "ec2_ip=$(terraform output -raw elastic_ip)" >> $GITHUB_OUTPUT
+          echo "EC2 Name: $(terraform output -raw instance_name)"
+          echo "EC2 Elastic IP: $(terraform output -raw elastic_ip)"
 
   deploy:
     name: Build, Push & Deploy to EC2
@@ -129,8 +132,8 @@ jobs:
             # Install crontab (idempotent — replaces on every deploy)
             crontab - << 'CRON'
             CRON_TZ=Asia/Kolkata
-            26 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"EQUITY"}' >> /var/log/parallax/nse_daily.log 2>&1
-            26 15 * * 5   docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"EQUITY"}' >> /var/log/parallax/nse_weekly.log 2>&1
+            26 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"EQUITY"}' --place-orders >> /var/log/parallax/nse_daily.log 2>&1
+            26 15 * * 5   docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"EQUITY"}' --place-orders >> /var/log/parallax/nse_weekly.log 2>&1
             45 8,20 * * * docker exec parallax python scripts/run.py token_refresh >> /var/log/parallax/token_refresh.log 2>&1
             CRON_TZ=America/New_York
             54 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_daily.log 2>&1
