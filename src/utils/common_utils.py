@@ -211,6 +211,11 @@ def convert_candles_to_df(candles: list) -> pd.DataFrame:
 
     return df
 
+def write_to_s3(bucket: str, key: str, body: bytes, content_type: str) -> None:
+    s3 = boto3.client("s3")
+    s3.put_object(Bucket=bucket, Key=key, Body=body, ContentType=content_type)
+
+
 def write_signals_to_s3(results: list, bucket: str, key_prefix: str = "signals") -> str:
     """
     Flatten signal generation output and write it as a CSV to S3.
@@ -258,13 +263,7 @@ def write_signals_to_s3(results: list, bucket: str, key_prefix: str = "signals")
     ts_str   = now_ist.strftime("%Y%m%dT%H%M%S")
     s3_key   = f"{key_prefix}/{date_str}/signals_{ts_str}.csv"
 
-    s3 = boto3.client("s3")
-    s3.put_object(
-        Bucket=bucket,
-        Key=s3_key,
-        Body=buf.getvalue().encode("utf-8"),
-        ContentType="text/csv",
-    )
+    write_to_s3(bucket, s3_key, buf.getvalue().encode("utf-8"), "text/csv")
 
     print("write_signals_to_s3: wrote %d rows to s3://%s/%s", len(rows), bucket, s3_key)
     return s3_key

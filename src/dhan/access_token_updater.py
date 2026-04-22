@@ -1,24 +1,18 @@
 import json
-import boto3
 import os
 import requests
+
+from src.utils.common_utils import get_token_from_s3, write_to_s3
 
 DHAN_CLIENT_ID = os.environ.get("DHAN_CLIENT_ID")
 S3_BUCKET = os.environ.get("BUCKET", "nse-artifacts")
 S3_KEY = "dhan/token.json"
 
 
-def get_token_from_s3():
-    s3 = boto3.client("s3")
-    response = s3.get_object(Bucket=S3_BUCKET, Key=S3_KEY)
-    data = json.loads(response["Body"].read().decode("utf-8"))
-    return data["token"]
-
-
 def lambda_handler(event, context):
     print("DHAN_CLIENT_ID", DHAN_CLIENT_ID)
     print("S3_BUCKET", S3_BUCKET)
-    ACCESS_TOKEN = get_token_from_s3()
+    ACCESS_TOKEN = get_token_from_s3(S3_BUCKET, S3_KEY)
 
     response = requests.get(
         "https://api.dhan.co/v2/RenewToken",
@@ -36,13 +30,7 @@ def lambda_handler(event, context):
 
     new_token = data["token"]
 
-    s3 = boto3.client("s3")
-    s3.put_object(
-        Bucket=S3_BUCKET,
-        Key=S3_KEY,
-        Body=json.dumps({"token": new_token}),
-        ContentType="application/json"
-    )
+    write_to_s3(S3_BUCKET, S3_KEY, json.dumps({"token": new_token}).encode("utf-8"), "application/json")
 
     print(f"Token refreshed and saved to s3://{S3_BUCKET}/{S3_KEY}")
 
