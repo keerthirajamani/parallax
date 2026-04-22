@@ -265,7 +265,7 @@ def write_signals_to_s3(results: list, bucket: str, key_prefix: str = "signals")
 
     write_to_s3(bucket, s3_key, buf.getvalue().encode("utf-8"), "text/csv")
 
-    print("write_signals_to_s3: wrote %d rows to s3://%s/%s", len(rows), bucket, s3_key)
+    print(f"write_signals_to_s3: wrote {len(rows)} rows to s3://{bucket}/{s3_key}")
     return s3_key
 
 

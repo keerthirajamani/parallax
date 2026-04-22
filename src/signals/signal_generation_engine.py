@@ -20,7 +20,7 @@ from src.config.symbols import resolve_symbol_map
 IST = ZoneInfo("Asia/Kolkata")
 
 
-upstox_access_token = os.environ.get("UPSTOX_ACCESS_TOKEN")
+upstox_access_token = os.environ.get("UPSTOX_ACCESS_TOKEN","eyJ0eXAiOiJKV1QiLCJrZXlfaWQiOiJza192MS4wIiwiYWxnIjoiSFMyNTYifQ.eyJzdWIiOiIzUkNLNTYiLCJqdGkiOiI2OWM3N2JlMmVmZmU0ODJmNzA5NmM0YzIiLCJpc011bHRpQ2xpZW50IjpmYWxzZSwiaXNQbHVzUGxhbiI6ZmFsc2UsImlzRXh0ZW5kZWQiOnRydWUsImlhdCI6MTc3NDY4MTA1OCwiaXNzIjoidWRhcGktZ2F0ZXdheS1zZXJ2aWNlIiwiZXhwIjoxODA2MjcxMjAwfQ.tOVcAfz7htW1OPhPQdxvmu-Uc5HviBvDu3lFYTyUjdg")
 
 HEADERS = {
     "Content-Type":  "application/json",
@@ -191,9 +191,10 @@ def lambda_handler(event, _context):
 
 
 # ── Local test ────────────────────────────────────────────────────────────────
-# if __name__ == "__main__":
-#     event = {"unit": "days",  "interval": 1, "entity": "EQUITY"}
+if __name__ == "__main__":
+    event = {"unit": "days",  "interval": 1, "entity": "EQUITY"}
 #     # event = {"unit": "weeks",   "interval": 1, "entity": "EQUITY"}
 #     # event = {"unit": "days", "interval": 1, "entity": "US_EQUITY"}
 #     # event = {"unit": "weeks",  "interval": 1, "entity": "US_EQUITY"}
-#     print(lambda_handler(event, None))
+    print(lambda_handler(event, None))
+

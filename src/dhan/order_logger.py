@@ -29,5 +29,5 @@ def log_executed_orders(orders: list[dict], bucket: str, key_prefix: str = "orde
 
     write_to_s3(bucket, s3_key, json.dumps(orders, indent=2).encode("utf-8"), "application/json")
 
-    logger.info("order_logger: wrote %d order(s) to s3://%s/%s", len(orders), bucket, s3_key)
+    print(f"order_logger: wrote {len(orders)} order(s) to s3://{bucket}/{s3_key}")
     return s3_key

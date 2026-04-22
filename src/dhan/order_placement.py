@@ -25,34 +25,7 @@ dhan           = dhanhq(DHAN_CLIENT_ID, access_token)
 
 
 # ── sample signals (replace with real output from signal engine) ──────────────
-signals = [
-    {
-        "mode": "EQUITY", "unit": "days", "interval": 1,
-        "instrument": {"exchange": "NSE_EQ", "isin": "INE795G01014", "security_id": "467"},
-        "signals": [{"symbol": "HDFCLIFE", "indicator": "2ut", "close": 616.45,
-                     "tsl": np.float64(637.255), "timestamp": "2026-04-17T00:00:00+05:30",
-                     "signal_type": "sell"}],
-    },
-    {
-        "mode": "EQUITY", "unit": "days", "interval": 1,
-        "instrument": {"exchange": "NSE_EQ", "isin": "INE154A01025", "security_id": "1660"},
-        "signals": [
-            {"symbol": "ITC", "indicator": "3hc", "close": 306.8,
-             "tsl": np.float64(300.55), "timestamp": "2026-04-17T00:00:00+05:30",
-             "signal_type": "buy"},
-            {"symbol": "ITC", "indicator": "2ut", "close": 306.8,
-             "tsl": np.float64(301.775), "timestamp": "2026-04-17T00:00:00+05:30",
-             "signal_type": "buy"},
-        ],
-    },
-    {
-        "mode": "EQUITY", "unit": "days", "interval": 1,
-        "instrument": {"exchange": "NSE_EQ", "isin": "INE002A01018", "security_id": "2885"},
-        "signals": [{"symbol": "RELIANCE", "indicator": "3hc", "close": 1365.0,
-                     "tsl": np.float64(1330.0), "timestamp": "2026-04-17T00:00:00+05:30",
-                     "signal_type": "buy"}],
-    },
-]
+signals = [{'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE467B01029', 'security_id': '11536'}, 'interval': 1, 'signals': [{'symbol': 'TCS', 'indicator': '3hc', 'close': 2545.0, 'tsl': np.float64(2614.0), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'buy'}, {'symbol': 'TCS', 'indicator': '2ut', 'close': 2545.0, 'tsl': np.float64(2605.89), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'sell'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE009A01021', 'security_id': '1594'}, 'interval': 1, 'signals': [{'symbol': 'INFY', 'indicator': '2ut', 'close': 1269.4, 'tsl': np.float64(1304.0600000000002), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'sell'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE669C01036', 'security_id': '13538'}, 'interval': 1, 'signals': [{'symbol': 'TECHM', 'indicator': '3hc', 'close': 1453.3, 'tsl': np.float64(1531.3), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'sell'}, {'symbol': 'TECHM', 'indicator': '2ut', 'close': 1453.3, 'tsl': np.float64(1495.9099999999999), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'sell'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE860A01027', 'security_id': '7229'}, 'interval': 1, 'signals': [{'symbol': 'HCLTECH', 'indicator': '2ut', 'close': 1289.6, 'tsl': np.float64(1336.84), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'sell'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE263A01024', 'security_id': '383'}, 'interval': 1, 'signals': [{'symbol': 'BEL', 'indicator': '3hc', 'close': 448.95, 'tsl': np.float64(464.4), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'sell'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE917I01010', 'security_id': '16669'}, 'interval': 1, 'signals': [{'symbol': 'BAJAJ-AUTO', 'indicator': '3hc', 'close': 9678.0, 'tsl': np.float64(9874.0), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'sell'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE018A01030', 'security_id': '11483'}, 'interval': 1, 'signals': [{'symbol': 'LT', 'indicator': '3hc', 'close': 4021.9, 'tsl': np.float64(4130.0), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'sell'}]}]
 
 # ── position sizing ───────────────────────────────────────────────────────────
 buy_signals = flatten_signals(signals, signal_type="buy")
