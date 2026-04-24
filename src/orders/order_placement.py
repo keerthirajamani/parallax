@@ -208,8 +208,3 @@ def _execute(client, broker: str, account_id: str, signals: list[dict], side: st
             continue
 
     return executed
-
-# signals = [{"mode":"EQUITY","unit":"days","instrument":{"exchange":"NSE_EQ","isin":"INE154A01025","security_id":"1660"},"interval":1,"signals":[{"symbol":"ITC","indicator":"3hc","close":301.6,"tsl":310.55,"timestamp":"2026-04-24T00:00:00+05:30","signal_type":"buy"}]},{"mode":"EQUITY","unit":"days","instrument":{"exchange":"NSE_EQ","isin":"INE081A01020","security_id":"3499"},"interval":1,"signals":[{"symbol":"TATASTEEL","indicator":"3hc","close":210.07,"tsl":213.78,"timestamp":"2026-04-24T00:00:00+05:30","signal_type":"sell"}]},{"mode":"EQUITY","unit":"days","instrument":{"exchange":"NSE_EQ","isin":"INE021A01026","security_id":"236"},"interval":1,"signals":[{"symbol":"ASIANPAINT","indicator":"3hc","close":2485.1,"tsl":2572,"timestamp":"2026-04-24T00:00:00+05:30","signal_type":"sell"}]},
-#            {"mode":"EQUITY","unit":"days","instrument":{"exchange":"NSE_EQ","isin":"INE154A01025","security_id":"1660"},"interval":1,"signals":[{"symbol":"ITC","indicator":"2ut","close":301.6,"tsl":310.55,"timestamp":"2026-04-24T00:00:00+05:30","signal_type":"buy"}]}]
-
-# place_orders(signals, entity="US_EQUITY")
