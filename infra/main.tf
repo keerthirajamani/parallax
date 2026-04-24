@@ -7,9 +7,9 @@ terraform {
   }
 
   backend "s3" {
-    bucket  = var.s3_bucket
+    bucket  = "us-east-1-parallax-bucket"
     key     = "parallax-state-artifacts/terraform.tfstate"
-    region  = var.aws_region
+    region  = "us-east-1"
     encrypt = true
   }
 }
