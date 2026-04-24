@@ -108,6 +108,9 @@ jobs:
           script: |
             # Ensure app directory exists
             mkdir -p /app
+            cat > /app/.env << 'ENVEOF'
+            ${{ secrets.APP_ENV_FILE }}
+            ENVEOF
 
             # Login to ECR
             aws ecr get-login-password --region $AWS_REGION | \
