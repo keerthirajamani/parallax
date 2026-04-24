@@ -4,7 +4,7 @@ import os
 
 import requests
 
-from src.dhan.account_registry import load_accounts
+from src.orders.account_registry import load_accounts
 from src.utils.common_utils import get_token_from_s3, write_to_s3
 
 logger = logging.getLogger(__name__)
@@ -30,9 +30,19 @@ def lambda_handler(event, context):
 
 
 def _refresh_token(account: dict) -> None:
+    broker = account.get("broker")
+
+    if broker == "dhan":
+        _refresh_dhan_token(account)
+    elif broker == "zerodha":
+        _refresh_zerodha_token(account)
+    else:
+        raise ValueError(f"Unsupported broker: {broker!r} for account={account['account_id']}")
+
+
+def _refresh_dhan_token(account: dict) -> None:
     account_id = account["account_id"]
-    client_id = account["client_id"]
-    token_key = account["token_s3_key"]
+    token_key  = account["token_s3_key"]
 
     current_token = get_token_from_s3(S3_BUCKET, token_key)
 
@@ -40,7 +50,7 @@ def _refresh_token(account: dict) -> None:
         "https://api.dhan.co/v2/RenewToken",
         headers={
             "access-token": current_token,
-            "dhanClientId": client_id,
+            "dhanClientId": account["client_id"],
             "Content-Type": "application/json",
         },
     )
@@ -50,12 +60,20 @@ def _refresh_token(account: dict) -> None:
     if "errorCode" in data:
         raise Exception(f"{data['errorCode']} - {data['errorMessage']}")
 
-    new_token = data["token"]
-    write_to_s3(
-        S3_BUCKET,
-        token_key,
-        json.dumps({"token": new_token}).encode("utf-8"),
-        "application/json",
+    _save_token(S3_BUCKET, token_key, data["token"])
+    print(f"token_refresh: account={account_id} dhan token saved to s3://{S3_BUCKET}/{token_key}")
+
+
+def _refresh_zerodha_token(account: dict) -> None:
+    """
+    Zerodha tokens cannot be auto-renewed via API — they require a login redirect.
+    This is a placeholder; wire in your token generation flow here.
+    """
+    account_id = account["account_id"]
+    raise NotImplementedError(
+        f"token_refresh: account={account_id} zerodha tokens must be refreshed manually via login flow"
     )
 
-    print(f"token_refresh: account={account_id} token saved to s3://{S3_BUCKET}/{token_key}")
+
+def _save_token(bucket: str, key: str, token: str) -> None:
+    write_to_s3(bucket, key, json.dumps({"token": token}).encode("utf-8"), "application/json")
