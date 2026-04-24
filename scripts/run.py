@@ -55,7 +55,7 @@ mode = sys.argv[1]
 
 if mode == "signals":
     from src.signals.signal_generation_engine import lambda_handler
-    from src.dhan.order_placement import place_orders
+    from src.orders.order_placement import place_orders
     event = json.loads(sys.argv[2])
     should_place_orders = "--place-orders" in sys.argv
     entity = event.get("entity", "unknown").lower()
@@ -72,7 +72,7 @@ if mode == "signals":
     run_with_logging(f"{entity}_{unit}", run_signals)
 
 elif mode == "token_refresh":
-    from src.dhan.access_token_updater import lambda_handler
+    from src.orders.access_token_updater import lambda_handler
 
     def run_token():
         result = lambda_handler({}, None)
