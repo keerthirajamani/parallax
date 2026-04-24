@@ -63,9 +63,9 @@ def flatten_signals(raw_signals: list[dict], signal_type: str) -> list[dict]:
 
 # ── sizing ────────────────────────────────────────────────────────────────────
 
-def compute_qty(close: float) -> int:
+def compute_qty(close: float, max_capital: float = MAX_TRADE_CAPITAL) -> int:
     """
-    Allocate MAX_TRADE_CAPITAL per trade.
+    Allocate max_capital per trade.
     Returns 0 if price exceeds the allocation cap.
     """
-    return math.floor(MAX_TRADE_CAPITAL / close)
+    return math.floor(max_capital / close)

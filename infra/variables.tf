@@ -12,5 +12,5 @@ variable "ssh_allowed_cidr" {
 }
 
 variable "s3_bucket" {
-  default = "nse-artifacts"
+  default = "us-east-1-parallax-bucket"
 }

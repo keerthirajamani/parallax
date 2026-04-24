@@ -1,78 +1,97 @@
-from dhanhq import dhanhq
-import os
-import sys
 import logging
-import numpy as np
+import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from src.utils.common_utils import get_token_from_s3
-from src.utils.position_sizer import (
-    flatten_signals,
-    compute_qty,
-)
+import numpy as np
+from dhanhq import dhanhq
+
+from src.dhan.account_registry import load_accounts
 from src.dhan.order_logger import log_executed_orders
+from src.utils.common_utils import get_token_from_s3
+from src.utils.position_sizer import flatten_signals, compute_qty
 
 logger = logging.getLogger(__name__)
 
-IST        = ZoneInfo("Asia/Kolkata")
-S3_BUCKET  = os.environ.get("BUCKET", "nse-artifacts")
-S3_KEY     = "dhan/token.json"
-
-DHAN_CLIENT_ID = os.environ.get("DHAN_CLIENT_ID", "1107245176")
-access_token   = get_token_from_s3(S3_BUCKET, S3_KEY)
-dhan           = dhanhq(DHAN_CLIENT_ID, access_token)
+IST = ZoneInfo("Asia/Kolkata")
+S3_BUCKET = os.environ.get("BUCKET", "us-east-1-parallax-bucket")
 
 
-# ── sample signals (replace with real output from signal engine) ──────────────
-signals = [{'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE467B01029', 'security_id': '11536'}, 'interval': 1, 'signals': [{'symbol': 'TCS', 'indicator': '3hc', 'close': 2545.0, 'tsl': np.float64(2614.0), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'buy'}, {'symbol': 'TCS', 'indicator': '2ut', 'close': 2545.0, 'tsl': np.float64(2605.89), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'buy'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE009A01021', 'security_id': '1594'}, 'interval': 1, 'signals': [{'symbol': 'INFY', 'indicator': '2ut', 'close': 1269.4, 'tsl': np.float64(1304.0600000000002), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'buy'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE669C01036', 'security_id': '13538'}, 'interval': 1, 'signals': [{'symbol': 'TECHM', 'indicator': '3hc', 'close': 1453.3, 'tsl': np.float64(1531.3), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'buy'}, {'symbol': 'TECHM', 'indicator': '2ut', 'close': 1453.3, 'tsl': np.float64(1495.9099999999999), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'sell'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE860A01027', 'security_id': '7229'}, 'interval': 1, 'signals': [{'symbol': 'HCLTECH', 'indicator': '2ut', 'close': 1289.6, 'tsl': np.float64(1336.84), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'sell'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE263A01024', 'security_id': '383'}, 'interval': 1, 'signals': [{'symbol': 'BEL', 'indicator': '3hc', 'close': 448.95, 'tsl': np.float64(464.4), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'sell'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE917I01010', 'security_id': '16669'}, 'interval': 1, 'signals': [{'symbol': 'BAJAJ-AUTO', 'indicator': '3hc', 'close': 9678.0, 'tsl': np.float64(9874.0), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'sell'}]}, {'mode': 'EQUITY', 'unit': 'days', 'instrument': {'exchange': 'NSE_EQ', 'isin': 'INE018A01030', 'security_id': '11483'}, 'interval': 1, 'signals': [{'symbol': 'LT', 'indicator': '3hc', 'close': 4021.9, 'tsl': np.float64(4130.0), 'timestamp': '2026-04-22T00:00:00+05:30', 'signal_type': 'sell'}]}]
+def place_orders(signals: list[dict]) -> dict:
+    """
+    Fan out signals to every enabled account.
 
-# ── position sizing ───────────────────────────────────────────────────────────
-buy_signals = flatten_signals(signals, signal_type="buy")
-print("buy_signals:", buy_signals)
+    Returns a summary keyed by account_id.
+    """
+    accounts = load_accounts()
+    results = {}
 
-# sys.exit("Planned Exit")
+    for account in accounts:
+        account_id = account["account_id"]
+        logger.info("place_orders: processing account=%s", account_id)
 
-# ── order execution ───────────────────────────────────────────────────────────
-executed_orders = []
+        try:
+            summary = _place_orders_for_account(account, signals)
+            results[account_id] = {"status": "ok", "orders_placed": summary}
+        except Exception as exc:
+            logger.error("place_orders: account=%s failed: %s", account_id, exc)
+            results[account_id] = {"status": "error", "error": str(exc)}
 
-for sig in buy_signals:
-    qty = compute_qty(sig["close"])
+    return results
 
-    # print("sig",sig,"qty",qty)
-    # sys.exit("Planned Exit")
 
-    if qty <= 0:
-        print("Skipping %s — insufficient capital for even 1 share", sig["symbol"])
-        continue
+def _place_orders_for_account(account: dict, signals: list[dict]) -> list[dict]:
+    account_id = account["account_id"]
+    client_id = account["client_id"]
+    token_key = account["token_s3_key"]
+    max_capital = float(account.get("max_trade_capital", 10000))
 
-    print(f"Placing BUY {sig['symbol']} | indicator={sig['indicator']} | qty={qty} | entry={sig['close']:.2f} | sl={sig['tsl']:.2f}")
+    access_token = get_token_from_s3(S3_BUCKET, token_key)
+    dhan_client = dhanhq(client_id, access_token)
 
-    # resp = dhan.place_order(
-    #     security_id=sig["security_id"],
-    #     exchange_segment=sig["exchange"],
-    #     transaction_type=dhan.BUY,
-    #     quantity=qty,
-    #     order_type=dhan.MARKET,
-    #     product_type=dhan.CNC,
-    #     price=0,
-    # )
-    # print(resp)
+    buy_signals = flatten_signals(signals, signal_type="buy")
+    logger.info("account=%s buy_signals=%d", account_id, len(buy_signals))
 
-    # order_id = resp.get("data", {}).get("orderId", "")
+    executed_orders = []
 
-    executed_orders.append({
-        "symbol":        sig["symbol"],
-        "security_id":   sig["security_id"],
-        "exchange":      sig["exchange"],
-        "indicator":     sig["indicator"],
-        "qty":           qty,
-        "entry_price":   sig["close"],
-        "stop_loss":     sig["tsl"],
-        "target":        0,          # TODO: wire in target after forever order is placed
-        # "order_id":      order_id,
-        "forever_placed": False,        # TODO:Phase 2: set True after forever order is placed
-        "timestamp":     datetime.now(IST).isoformat(),
-    })
+    for sig in buy_signals:
+        qty = compute_qty(sig["close"], max_capital=max_capital)
 
-log_executed_orders(executed_orders, bucket=S3_BUCKET)
+        if qty <= 0:
+            logger.info("account=%s skipping %s — insufficient capital", account_id, sig["symbol"])
+            continue
+
+        logger.info(
+            "account=%s placing BUY %s | indicator=%s | qty=%d | entry=%.2f | sl=%.2f",
+            account_id, sig["symbol"], sig["indicator"], qty, sig["close"], sig["tsl"],
+        )
+
+        resp = dhan_client.place_order(
+            security_id=sig["security_id"],
+            exchange_segment=sig["exchange"],
+            transaction_type=dhan_client.BUY,
+            quantity=qty,
+            order_type=dhan_client.MARKET,
+            product_type=dhan_client.CNC,
+            price=0,
+        )
+        logger.info("account=%s order_response=%s", account_id, resp)
+
+        order_id = resp.get("data", {}).get("orderId", "")
+
+        executed_orders.append({
+            "symbol":         sig["symbol"],
+            "security_id":    sig["security_id"],
+            "exchange":       sig["exchange"],
+            "indicator":      sig["indicator"],
+            "qty":            qty,
+            "entry_price":    sig["close"],
+            "stop_loss":      sig["tsl"],
+            "target":         0,
+            "order_id":       order_id,
+            "forever_placed": False,
+            "timestamp":      datetime.now(IST).isoformat(),
+        })
+
+    log_executed_orders(executed_orders, bucket=S3_BUCKET, account_id=account_id)
+    return executed_orders
