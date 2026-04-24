@@ -19,7 +19,7 @@ def load_accounts(broker: str = "dhan", bucket: str = S3_BUCKET) -> list[dict]:
           {
             "account_id": "alice",
             "broker": "dhan",
-            "client_id":  "1107245176",
+            "client_id":  "12345678",
             "token_s3_key": "accounts/alice/token.json",
             "max_trade_capital": 10000,
             "enabled": true
