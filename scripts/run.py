@@ -60,13 +60,12 @@ if mode == "signals":
     should_place_orders = "--place-orders" in sys.argv
     entity = event.get("entity", "unknown").lower()
     unit = event.get("unit", "unknown").lower()
-
     def run_signals():
         result = lambda_handler(event, None)
         print(f"signals result: {json.dumps(result, default=str, indent=2)}")
         if should_place_orders:
             print("placing orders...")
-            order_results = place_orders(result)
+            order_results = place_orders(result, entity=entity)
             print(f"order results: {json.dumps(order_results, default=str, indent=2)}")
 
     run_with_logging(f"{entity}_{unit}", run_signals)

@@ -4,7 +4,7 @@ from datetime import datetime, time as dt_time
 from zoneinfo import ZoneInfo
 
 from dhanhq import dhanhq
-from kiteconnect import KiteConnect
+# from kiteconnect import KiteConnect
 
 from src.orders.account_registry import load_accounts
 from src.orders.order_logger import log_executed_orders
@@ -16,13 +16,22 @@ logger = logging.getLogger(__name__)
 IST = ZoneInfo("Asia/Kolkata")
 S3_BUCKET = os.environ.get("BUCKET", "us-east-1-parallax-bucket")
 
-MARKET_OPEN  = dt_time(9, 15)
-MARKET_CLOSE = dt_time(15, 30)
+US_ENTITIES = {"us_equity", "us_index"}
+
+INDIA_OPEN  = dt_time(9, 15)
+INDIA_CLOSE = dt_time(15, 30)
+
+US_OPEN  = dt_time(9, 30)
+US_CLOSE = dt_time(16, 0)
+EST = ZoneInfo("America/New_York")
 
 
-def _is_market_open() -> bool:
+def _is_market_open(entity: str) -> bool:
+    if entity.lower() in US_ENTITIES:
+        now = datetime.now(EST).time()
+        return US_OPEN <= now <= US_CLOSE
     now = datetime.now(IST).time()
-    return MARKET_OPEN <= now <= MARKET_CLOSE
+    return INDIA_OPEN <= now <= INDIA_CLOSE
 
 
 # ── broker factory ────────────────────────────────────────────────────────────
@@ -34,10 +43,11 @@ def _build_client(account: dict, token: str):
     if broker == "dhan":
         return dhanhq(account["client_id"], token)
 
-    if broker == "zerodha":
-        kite = KiteConnect(api_key=account["api_key"])
-        kite.set_access_token(token)
-        return kite
+    # if broker == "zerodha":
+    #     kite = KiteConnect(api_key=account["api_key"])
+    #     kite.set_access_token(token)
+        
+    #     return kite
 
     raise ValueError(f"Unsupported broker: {broker!r} for account={account['account_id']}")
 
@@ -59,6 +69,7 @@ def _prefetch_clients(accounts: list[dict]) -> dict[str, object]:
 # ── broker-specific order dispatch ───────────────────────────────────────────
 
 def _place_order(client, broker: str, sig: dict, side: str, qty: int) -> str:
+    # print("placing order",client,broker,sig,side, qty)
     """Place a single order and return the order_id. Raises on failure."""
 
     if broker == "dhan":
@@ -76,35 +87,38 @@ def _place_order(client, broker: str, sig: dict, side: str, qty: int) -> str:
             raise RuntimeError(resp.get("remarks", "unknown error"))
         return resp.get("data", {}).get("orderId", "")
 
-    if broker == "zerodha":
-        transaction_type = "BUY" if side == "buy" else "SELL"
-        order_id = client.place_order(
-            variety=KiteConnect.VARIETY_REGULAR,
-            exchange="NSE",
-            tradingsymbol=sig["symbol"],
-            transaction_type=transaction_type,
-            quantity=qty,
-            product=KiteConnect.PRODUCT_CNC,
-            order_type=KiteConnect.ORDER_TYPE_MARKET,
-        )
-        return str(order_id)
+    # if broker == "zerodha":
+    #     transaction_type = "BUY" if side == "buy" else "SELL"
+    #     order_id = client.place_order(
+    #         variety=KiteConnect.VARIETY_REGULAR,
+    #         exchange="NSE",
+    #         tradingsymbol=sig["symbol"],
+    #         transaction_type=transaction_type,
+    #         quantity=qty,
+    #         product=KiteConnect.PRODUCT_CNC,
+    #         order_type=KiteConnect.ORDER_TYPE_MARKET,
+    #     )
+    #     return str(order_id)
 
     raise ValueError(f"Unsupported broker: {broker!r}")
 
 
 # ── main entry point ──────────────────────────────────────────────────────────
 
-def place_orders(signals: list[dict]) -> dict:
+def place_orders(signals: list[dict], entity: str) -> dict:
     """
     Fan out signals to every enabled account across all brokers.
+    entity: "EQUITY" / "INDEX" for Indian market, "US_EQUITY" / "US_INDEX" for US market.
     Returns a summary keyed by account_id.
     """
-    if not _is_market_open():
-        now_str = datetime.now(IST).strftime("%H:%M:%S")
-        print(f"place_orders: market is closed at {now_str} IST, skipping")
-        return {"status": "skipped", "reason": "market_closed"}
+    # if not _is_market_open(entity):
+    #     tz = EST if entity.lower() in US_ENTITIES else IST
+    #     print(f"place_orders: market closed at {datetime.now(tz).strftime('%H:%M:%S')} for entity={entity}, skipping")
+    #     return {"status": "skipped", "reason": "market_closed"}
 
-    accounts = load_accounts()
+    market = "us" if entity.lower() in US_ENTITIES else "india"
+    accounts = load_accounts(market=market)
+    print(f"place_orders: entity={entity} market={market} accounts={len(accounts)}")
     clients  = _prefetch_clients(accounts)
 
     results = {}
@@ -112,7 +126,7 @@ def place_orders(signals: list[dict]) -> dict:
         account_id = account["account_id"]
         print(f"place_orders: processing account={account_id} broker={account['broker']}")
         try:
-            summary = _place_orders_for_account(account, clients[account_id], signals)
+            summary = _place_orders_for_account(account, clients[account_id], signals, market)
             results[account_id] = {"status": "ok", "orders_placed": summary}
         except Exception as exc:
             print(f"place_orders: account={account_id} failed: {exc}")
@@ -121,10 +135,22 @@ def place_orders(signals: list[dict]) -> dict:
     return results
 
 
-def _place_orders_for_account(account: dict, client, signals: list[dict]) -> list[dict]:
+def _resolve_capital(account: dict, market: str) -> float:
+    """
+    Returns max_trade_capital for the given market.
+    Looks up market_config[market] first, falls back to top-level max_trade_capital.
+    """
+    market_config = account.get("market_config", {})
+    if market in market_config:
+        return float(market_config[market].get("max_trade_capital"))
+    return float(account.get("max_trade_capital"))
+
+
+def _place_orders_for_account(account: dict, client, signals: list[dict], market: str) -> list[dict]:
     account_id  = account["account_id"]
     broker      = account["broker"]
-    max_capital = float(account.get("max_trade_capital", 10000))
+    max_capital = _resolve_capital(account, market)
+    print(f"account={account_id} broker={broker} market={market} max_capital={max_capital}")
 
     executed_orders  = _execute(client, broker, account_id, signals, "buy",  max_capital)
     # executed_orders += _execute(client, broker, account_id, signals, "sell", max_capital)
@@ -135,8 +161,12 @@ def _place_orders_for_account(account: dict, client, signals: list[dict]) -> lis
 
 def _execute(client, broker: str, account_id: str, signals: list[dict], side: str, max_capital: float) -> list[dict]:
     flat = flatten_signals(signals, signal_type=side)
-    print(f"account={account_id} broker={broker} side={side} signals={len(flat)}")
 
+    if not flat:
+        print(f"account={account_id} broker={broker} side={side} — no signals, skipping")
+        return []
+
+    print(f"account={account_id} broker={broker} side={side} signals={len(flat)}")
     executed = []
 
     for sig in flat:
@@ -154,6 +184,7 @@ def _execute(client, broker: str, account_id: str, signals: list[dict], side: st
 
         try:
             order_id = _place_order(client, broker, sig, side, qty)
+            print("order id ", order_id)
             print(f"account={account_id} order_id={order_id} symbol={sig['symbol']} side={side}")
 
             executed.append({
@@ -177,3 +208,8 @@ def _execute(client, broker: str, account_id: str, signals: list[dict], side: st
             continue
 
     return executed
+
+# signals = [{"mode":"EQUITY","unit":"days","instrument":{"exchange":"NSE_EQ","isin":"INE154A01025","security_id":"1660"},"interval":1,"signals":[{"symbol":"ITC","indicator":"3hc","close":301.6,"tsl":310.55,"timestamp":"2026-04-24T00:00:00+05:30","signal_type":"buy"}]},{"mode":"EQUITY","unit":"days","instrument":{"exchange":"NSE_EQ","isin":"INE081A01020","security_id":"3499"},"interval":1,"signals":[{"symbol":"TATASTEEL","indicator":"3hc","close":210.07,"tsl":213.78,"timestamp":"2026-04-24T00:00:00+05:30","signal_type":"sell"}]},{"mode":"EQUITY","unit":"days","instrument":{"exchange":"NSE_EQ","isin":"INE021A01026","security_id":"236"},"interval":1,"signals":[{"symbol":"ASIANPAINT","indicator":"3hc","close":2485.1,"tsl":2572,"timestamp":"2026-04-24T00:00:00+05:30","signal_type":"sell"}]},
+#            {"mode":"EQUITY","unit":"days","instrument":{"exchange":"NSE_EQ","isin":"INE154A01025","security_id":"1660"},"interval":1,"signals":[{"symbol":"ITC","indicator":"2ut","close":301.6,"tsl":310.55,"timestamp":"2026-04-24T00:00:00+05:30","signal_type":"buy"}]}]
+
+# place_orders(signals, entity="US_EQUITY")
