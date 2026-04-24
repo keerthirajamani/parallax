@@ -88,7 +88,7 @@ def _fetch_india_symbol(symbol: str, unit: str, interval: int, symbol_map: dict,
     instrument = f"{sym['exchange']}|{sym['isin']}" if "isin" in sym else sym["exchange"]
     df = convert_candles_to_df(fetch_candles(instrument, unit, interval, HEADERS, entity))
     df = three_horse_crow(df)
-    df = ut_bot_alerts(df)
+    # df = ut_bot_alerts(df)
     df["symbol"] = symbol
     return symbol, build_signals_from_last_row(df)
 
@@ -192,7 +192,7 @@ def lambda_handler(event, _context):
 
 # ── Local test ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    event = {"unit": "days",  "interval": 1, "entity": "EQUITY"}
+    event = {"unit": "months",  "interval": 1, "entity": "EQUITY"}
 #     # event = {"unit": "weeks",   "interval": 1, "entity": "EQUITY"}
 #     # event = {"unit": "days", "interval": 1, "entity": "US_EQUITY"}
 #     # event = {"unit": "weeks",  "interval": 1, "entity": "US_EQUITY"}

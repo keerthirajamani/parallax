@@ -21,7 +21,7 @@ MAX_TRADE_CAPITAL = float(os.environ.get("MAX_TRADE_CAPITAL", "10000"))
 def get_available_capital(dhan) -> float:
     resp = dhan.get_fund_limits()
     capital = float(resp["data"]["available_balance"])
-    logger.info("position_sizer: available_capital=%.2f", capital)
+    print(f"position_sizer: available_capital={capital}")
     return capital
 
 
