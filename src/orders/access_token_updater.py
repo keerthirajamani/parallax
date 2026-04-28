@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 S3_BUCKET = os.environ.get("BUCKET", "us-east-1-parallax-bucket")
 
 
-def lambda_handler(event, context):
+def token_lambda_handler(event, context):
     accounts = load_accounts()
     results = {}
 

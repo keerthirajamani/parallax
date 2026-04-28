@@ -145,7 +145,7 @@ def get_us_signals(symbol_map: dict, interval: str = "1d") -> dict:
     return results
 
 
-def lambda_handler(event, _context):
+def signal_lambda_handler(event, _context):
     entity   = event.get("entity")
     unit     = event.get("unit")
     interval = event.get("interval")
@@ -196,5 +196,5 @@ if __name__ == "__main__":
 #     # event = {"unit": "weeks",   "interval": 1, "entity": "EQUITY"}
 #     # event = {"unit": "days", "interval": 1, "entity": "US_EQUITY"}
 #     # event = {"unit": "weeks",  "interval": 1, "entity": "US_EQUITY"}
-    print(lambda_handler(event, None))
+    print(signal_lambda_handler(event, None))
 
