@@ -21,7 +21,7 @@ def log_executed_orders(orders: list[dict], bucket: str, account_id: str, key_pr
 
     now_ist = datetime.now(IST)
     date_str = now_ist.strftime("%Y-%m-%d")
-    ts_str = now_ist.strftime("%Y%m%dT%H%M%S")
+    ts_str = now_ist.strftime("%Y%m%dT%H%M%S%f")
     s3_key = f"{key_prefix}/{account_id}/{date_str}/executed_{ts_str}.json"
 
     write_to_s3(bucket, s3_key, json.dumps(orders, indent=2).encode("utf-8"), "application/json")
