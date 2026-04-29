@@ -34,13 +34,14 @@ def place_order(client, sig: dict, side: str, qty: int, order_type="MARKET", pro
     resp = client.place_order(
         security_id=sig["security_id"],
         exchange_segment=sig["exchange"],
-        transaction_type=TRANSACTION_TYPE_MAP[side],
+        transaction_type=TRANSACTION_TYPE_MAP[side.upper()],
         quantity=qty,
-        order_type=ORDER_TYPE_MAP[order_type],
-        product_type=PRODUCT_TYPE_MAP[product_type],
+        order_type=ORDER_TYPE_MAP[order_type.upper()],
+        product_type=PRODUCT_TYPE_MAP[product_type.upper()],
         price=0,
     )
     if resp.get("status") == "failure":
+        print("resp", resp)
         raise RuntimeError(resp.get("remarks", "unknown error"))
     return resp.get("data", {}).get("orderId", "")
 
@@ -67,10 +68,10 @@ def place_forever_order(client,
         try:
             response = client.place_forever(
                 security_id=security_id,
-                exchange_segment=EXCHANGE_TYPE_MAP[exchange],
-                transaction_type=TRANSACTION_TYPE_MAP[side],
-                order_type=ORDER_TYPE_MAP[order_type],
-                product_type=PRODUCT_TYPE_MAP[product_type],
+                exchange_segment=EXCHANGE_TYPE_MAP[exchange.upper()],
+                transaction_type=TRANSACTION_TYPE_MAP[side.upper()],
+                order_type=ORDER_TYPE_MAP[order_type.upper()],
+                product_type=PRODUCT_TYPE_MAP[product_type.upper()],
                 quantity=quantity,
                 price=price,
                 trigger_Price=trigger_Price
@@ -83,10 +84,10 @@ def place_forever_order(client,
         try:
             response = client.place_forever(
                 security_id=security_id,
-                exchange_segment=EXCHANGE_TYPE_MAP[exchange],
-                transaction_type=TRANSACTION_TYPE_MAP[side],
-                order_type=ORDER_TYPE_MAP[order_type],
-                product_type=PRODUCT_TYPE_MAP[product_type],
+                exchange_segment=EXCHANGE_TYPE_MAP[exchange.upper()],
+                transaction_type=TRANSACTION_TYPE_MAP[side.upper()],
+                order_type=ORDER_TYPE_MAP[order_type.upper()],
+                product_type=PRODUCT_TYPE_MAP[product_type.upper()],
                 quantity=quantity,
                 price=price,
                 trigger_Price=trigger_Price,
