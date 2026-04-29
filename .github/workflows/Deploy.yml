@@ -107,7 +107,7 @@ jobs:
           envs: AWS_REGION,ECR_REPOSITORY
           script: |
             # Ensure app directory exists
-            mkdir -p /app
+            sudo mkdir -p /app
             sudo chown -R ec2-user:ec2-user /app
             cat > /app/.env << 'ENVEOF'
             ${{ secrets.APP_ENV_FILE }}
