@@ -6,6 +6,8 @@ from zoneinfo import ZoneInfo
 from dhanhq import dhanhq
 # from kiteconnect import KiteConnect
 
+from src.orders.brokers import dhan as dhan_broker
+# from src.orders.brokers import zerodha as zerodha_broker
 from src.orders.account_registry import load_accounts
 from src.orders.order_logger import log_executed_orders
 from src.utils.common_utils import get_token_from_s3
@@ -68,39 +70,17 @@ def _prefetch_clients(accounts: list[dict]) -> dict[str, object]:
 
 # ── broker-specific order dispatch ───────────────────────────────────────────
 
+_BROKER_MODULES = {
+    "dhan": dhan_broker,
+    # "zerodha": zerodha_broker,
+}
+
+
 def _place_order(client, broker: str, sig: dict, side: str, qty: int) -> str:
-    # print("placing order",client,broker,sig,side, qty)
-    """Place a single order and return the order_id. Raises on failure."""
-
-    if broker == "dhan":
-        transaction_type = client.BUY if side == "buy" else client.SELL
-        resp = client.place_order(
-            security_id=sig["security_id"],
-            exchange_segment=sig["exchange"],
-            transaction_type=transaction_type,
-            quantity=qty,
-            order_type=client.MARKET,
-            product_type=client.CNC,
-            price=0,
-        )
-        if resp.get("status") == "failure":
-            raise RuntimeError(resp.get("remarks", "unknown error"))
-        return resp.get("data", {}).get("orderId", "")
-
-    # if broker == "zerodha":
-    #     transaction_type = "BUY" if side == "buy" else "SELL"
-    #     order_id = client.place_order(
-    #         variety=KiteConnect.VARIETY_REGULAR,
-    #         exchange="NSE",
-    #         tradingsymbol=sig["symbol"],
-    #         transaction_type=transaction_type,
-    #         quantity=qty,
-    #         product=KiteConnect.PRODUCT_CNC,
-    #         order_type=KiteConnect.ORDER_TYPE_MARKET,
-    #     )
-    #     return str(order_id)
-
-    raise ValueError(f"Unsupported broker: {broker!r}")
+    module = _BROKER_MODULES.get(broker)
+    if module is None:
+        raise ValueError(f"Unsupported broker: {broker!r}")
+    return module.place_order(client, sig, side, qty)
 
 
 # ── main entry point ──────────────────────────────────────────────────────────
@@ -111,10 +91,10 @@ def place_orders(signals: list[dict], entity: str) -> dict:
     entity: "EQUITY" / "INDEX" for Indian market, "US_EQUITY" / "US_INDEX" for US market.
     Returns a summary keyed by account_id.
     """
-    # if not _is_market_open(entity):
-    #     tz = EST if entity.lower() in US_ENTITIES else IST
-    #     print(f"place_orders: market closed at {datetime.now(tz).strftime('%H:%M:%S')} for entity={entity}, skipping")
-    #     return {"status": "skipped", "reason": "market_closed"}
+    if not _is_market_open(entity):
+        tz = EST if entity.lower() in US_ENTITIES else IST
+        print(f"place_orders: market closed at {datetime.now(tz).strftime('%H:%M:%S')} for entity={entity}, skipping")
+        return {"status": "skipped", "reason": "market_closed"}
 
     market = "us" if entity.lower() in US_ENTITIES else "india"
     accounts = load_accounts(market=market)
