@@ -97,3 +97,12 @@ elif mode == "token_refresh":
         print(f"token_refresh result: {json.dumps(result, default=str)}")
 
     run_with_logging("token_refresh", run_token)
+
+elif mode == "portfolio_update":
+    from src.portfolio.portfolio_management import portfolio_lambda_handler
+    event = json.loads(sys.argv[2])
+    def run_portfolio_update():
+        result = portfolio_lambda_handler(event, None)
+        print(f"portfolio_update result: {json.dumps(result, default=str)}")
+
+    run_with_logging("portfolio_update", run_portfolio_update)        

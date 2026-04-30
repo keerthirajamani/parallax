@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from dhanhq import dhanhq
 # from kiteconnect import KiteConnect
 
-from src.orders.brokers import dhan as dhan_broker
+from src.brokers import dhan as dhan_broker
 # from src.orders.brokers import zerodha as zerodha_broker
 from src.orders.account_registry import load_accounts
 from src.orders.order_logger import log_executed_orders
