@@ -1,8 +1,8 @@
 INDEX_SYMBOLS = {
-        "nifty50":   {"exchange": "NSE_INDEX|Nifty 50",        "security_id": ""},
-        "banknifty": {"exchange": "NSE_INDEX|Nifty Bank",       "security_id": ""},
-        "finnifty":  {"exchange": "NSE_INDEX|Nifty Fin Service","security_id": ""},
-        "sensex":    {"exchange": "BSE_INDEX|SENSEX",           "security_id": ""},
+        "nifty50":   {"exchange": "NSE_INDEX|Nifty 50",        "security_id": "13"},
+        "banknifty": {"exchange": "NSE_INDEX|Nifty Bank",       "security_id": "25"},
+        "finnifty":  {"exchange": "NSE_INDEX|Nifty Fin Service","security_id": "27"},
+        "sensex":    {"exchange": "BSE_INDEX|SENSEX",           "security_id": "51"},
     }
 EQUITY_SYMBOLS = {
         "ONGC":       {"exchange": "NSE_EQ", "isin": "INE213A01029", "security_id": "2475"},

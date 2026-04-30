@@ -50,6 +50,7 @@ pd.set_option("display.max_colwidth", None)
 def build_signals_from_last_row(df, prefixes=("3hc", "2ut")):
     if df.empty:
         return []
+    print(df.tail(30))
 
     if "ts" in df.columns:
         df["ts"] = pd.to_datetime(df["ts"])
@@ -192,7 +193,7 @@ def signal_lambda_handler(event, _context):
 
 # ── Local test ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    event = {"unit": "months",  "interval": 1, "entity": "EQUITY"}
+    event = {"unit": "hours",  "interval": 1, "entity": "INDEX"}
 #     # event = {"unit": "weeks",   "interval": 1, "entity": "EQUITY"}
 #     # event = {"unit": "days", "interval": 1, "entity": "US_EQUITY"}
 #     # event = {"unit": "weeks",  "interval": 1, "entity": "US_EQUITY"}

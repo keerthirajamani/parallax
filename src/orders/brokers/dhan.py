@@ -46,15 +46,26 @@ def place_order(client, sig: dict, side: str, qty: int, order_type="MARKET", pro
     return resp.get("data", {}).get("orderId", "")
 
 def get_current_holding(client):
-    response = client.get_holdings()
-    return response
+    holdings = client.get_holdings()
+    extracted_data = []
+    if holdings['status'] == 'success':
+        for stock in holdings['data']:
+            if stock['dpQty']>0: #filters only settled stock
+                extracted_data.append({
+                    'tradingSymbol': stock['tradingSymbol'],
+                    'securityId': stock['securityId'],
+                    'dpQty': stock['dpQty'],
+                    'avgCostPrice': stock['avgCostPrice'],
+                    'lastTradedPrice': stock['lastTradedPrice']
+                })
+    return extracted_data
 
 def place_forever_order(client, 
                         security_id:int, 
                         quantity:int, 
                         price:float, 
                         trigger_Price:float,
-                        is_oco=0,
+                        is_oco=False,
                         order_flag="OCO",
                         price1=0,
                         trigger_Price1=0,
@@ -99,3 +110,31 @@ def place_forever_order(client,
         except Exception as e:
             print(f"Error placing OCO forever order: {e}")
         print("\nPlacing Forever Order (OCO)...")
+
+def get_forever_order(client):
+    forever_orders = client.get_forever()
+    extracted_data = []
+    if forever_orders['status'] == 'success':
+        for stock in forever_orders['data']:
+            extracted_data.append({
+                'dhanClientId': stock['dhanClientId'],
+                'orderId': stock['orderId'],
+                'orderStatus': stock['orderStatus'],
+                'transactionType': stock['transactionType'],
+                'productType': stock['productType'],
+                'orderType': stock['orderType'],
+                'tradingSymbol': stock['tradingSymbol'],
+                'securityId': stock['securityId'],
+                'quantity': stock['quantity'],
+                'price': stock['price'],
+                'triggerPrice': stock['triggerPrice'],
+                'legName': stock['legName']                
+            })
+    return extracted_data
+
+def modify_forever_order(client, order_id, quantity, price, trigger_price, order_flag, leg_name, order_type="LIMIT", disclosed_quantity=0, validity="DAY"):
+    
+    modify_forever_orders = client.modify_forever(order_id, order_flag, order_type, leg_name,
+                       quantity, price, trigger_price, disclosed_quantity, validity)
+    
+    return modify_forever_orders

@@ -69,3 +69,6 @@ def compute_qty(close: float, max_capital: float = MAX_TRADE_CAPITAL) -> int:
     Returns 0 if price exceeds the allocation cap.
     """
     return math.floor(max_capital / close)
+
+def calculate_percentage(avgCostPrice: float, percentage: float = 3.0) -> int:
+    return (percentage / 100) * avgCostPrice
