@@ -1,0 +1,9 @@
+# Local state (should be in S3)
+terraform.tfstate
+terraform.tfstate.backup
+.terraform/
+
+# terraform.tfvars is committed (no sensitive values)
+
+# Crash logs
+crash.log

@@ -1,9 +1,10 @@
-name: Build & Deploy Parallax Lambda
+name: Build & Deploy Parallax to EC2
 
 on:
   push:
     branches:
       - main
+      - feat/*
   workflow_dispatch:
     inputs:
       environment:
@@ -24,9 +25,48 @@ env:
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
 
 jobs:
-  deploy:
-    name: Build, Push & Terraform Deploy
+  terraform:
+    name: Provision EC2 via Terraform
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    outputs:
+      ec2_ip: ${{ steps.tf_output.outputs.ec2_ip }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: infra
+        run: terraform apply -auto-approve
+
+      - name: Get EC2 IP
+        id: tf_output
+        working-directory: infra
+        run: |
+          echo "ec2_ip=$(terraform output -raw elastic_ip)" >> $GITHUB_OUTPUT
+          echo "EC2 Name: $(terraform output -raw instance_name)"
+          echo "EC2 Elastic IP: $(terraform output -raw elastic_ip)"
+
+  deploy:
+    name: Build, Push & Deploy to EC2
+    runs-on: ubuntu-latest
+    needs: terraform
     environment: ${{ github.event.inputs.environment || 'dev' }}
 
     steps:
@@ -51,18 +91,58 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ steps.meta.outputs.tag }}
-        working-directory: ./
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker tag $ECR_REGISTRY/$ECR_REPOSITORY:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "Pushed: latest and $IMAGE_TAG"
-      - name: Update Lambda Function Code
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          aws lambda update-function-code \
-            --function-name parallax-signal-lambda \
-            --image-uri $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ needs.terraform.outputs.ec2_ip }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: AWS_REGION,ECR_REPOSITORY
+          script: |
+            # Ensure app directory exists
+            sudo mkdir -p /app
+            sudo chown -R ec2-user:ec2-user /app
+            cat > /app/.env << 'ENVEOF'
+            ${{ secrets.APP_ENV_FILE }}
+            ENVEOF
+
+            # Login to ECR
+            aws ecr get-login-password --region $AWS_REGION | \
+              docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+
+            # Pull latest image
+            docker pull ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
+
+            # Restart container
+            docker stop parallax || true
+            docker rm parallax || true
+            docker run -d \
+              --name parallax \
+              --env-file /app/.env \
+              --restart unless-stopped \
+              ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
+
+            # Create log directory
+            sudo mkdir -p /var/log/parallax
+            sudo chown ec2-user:ec2-user /var/log/parallax
+
+            # Install crontab (idempotent — replaces on every deploy)
+            crontab - << 'CRON'
+            CRON_TZ=Asia/Kolkata
+            15 8,20 * * * docker exec parallax python scripts/run.py token_refresh >> /var/log/parallax/token_refresh.log 2>&1
+            30 8 * * 1-5 docker exec parallax python scripts/run.py portfolio_update '{"market":"india"}' >> /var/log/parallax/portfolio_update.log 2>&1
+            26 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"EQUITY"}' --place-orders >> /var/log/parallax/nse_daily.log 2>&1
+            27 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"EQUITY"}' --place-orders >> /var/log/parallax/nse_weekly.log 2>&1
+            CRON_TZ=America/New_York
+            54 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_daily.log 2>&1
+            55 15 * * 5   docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_weekly.log 2>&1
+            CRON
+
+            echo "Deployed successfully"

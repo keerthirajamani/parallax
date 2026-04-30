@@ -1,0 +1,13 @@
+yfinance==0.2.66
+pycparser==2.23
+python-dateutil==2.9.0.post0
+pytz==2025.2
+boto3==1.42.22
+requests==2.32.5
+six==1.17.0
+websockets==15.0.1
+pandas==2.3.3
+python-dotenv
+numpy==2.2.6
+dhanhq==2.0.2
+pandas_market_calendars==5.3.2
