@@ -31,6 +31,7 @@ EXCHANGE_TYPE_MAP = {
 
 
 def place_order(client, sig: dict, side: str, qty: int, order_type="MARKET", product_type="CNC") -> str:
+    print("\nPlacing Order ...")
     resp = client.place_order(
         security_id=sig["security_id"],
         exchange_segment=sig["exchange"],
@@ -46,6 +47,7 @@ def place_order(client, sig: dict, side: str, qty: int, order_type="MARKET", pro
     return resp.get("data", {}).get("orderId", "")
 
 def get_current_holding(client):
+    print("\nGetting Holding ...")
     holdings = client.get_holdings()
     extracted_data = []
     if holdings['status'] == 'success':
@@ -112,6 +114,7 @@ def place_forever_order(client,
         print("\nPlacing Forever Order (OCO)...")
 
 def get_forever_order(client):
+    print("\nGetting Forever order ...")
     forever_orders = client.get_forever()
     extracted_data = []
     if forever_orders['status'] == 'success':
@@ -133,7 +136,7 @@ def get_forever_order(client):
     return extracted_data
 
 def modify_forever_order(client, order_id, quantity, price, trigger_price, order_flag, leg_name, order_type="LIMIT", disclosed_quantity=0, validity="DAY"):
-    
+    print("\nModifying Forever Order ...")
     modify_forever_orders = client.modify_forever(order_id, order_flag, order_type, leg_name,
                        quantity, price, trigger_price, disclosed_quantity, validity)
     
