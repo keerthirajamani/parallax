@@ -1,3 +1,5 @@
+EXCLUDE_FOREVER_ORDER_SYMBOLS = {"GOLDBEES"}
+
 INDEX_SYMBOLS = {
         "nifty50":   {"exchange": "NSE_INDEX|Nifty 50",        "security_id": "13"},
         "banknifty": {"exchange": "NSE_INDEX|Nifty Bank",       "security_id": "25"},

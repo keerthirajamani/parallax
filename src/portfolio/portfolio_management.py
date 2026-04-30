@@ -1,6 +1,7 @@
 import traceback
 
 from src.brokers import dhan as dhan_broker
+from src.config.symbols import EXCLUDE_FOREVER_ORDER_SYMBOLS
 from src.orders.order_placement import load_accounts, _prefetch_clients
 from src.utils.position_sizer import calculate_percentage
 
@@ -31,6 +32,10 @@ def portfolio_lambda_handler(event, _context):
             continue
 
         for holding in holdings:
+            print("holding", holding)
+            if holding.get('tradingSymbol') in EXCLUDE_FOREVER_ORDER_SYMBOLS:
+                print(f"\nSkipping forever order for {holding.get('tradingSymbol')}")
+                continue
             try:
                 print("\nExecuting for ", holding)
                 tgt_price = round(holding.get('avgCostPrice') + calculate_percentage(holding.get('avgCostPrice')), 2)
