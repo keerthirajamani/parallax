@@ -3,7 +3,7 @@ import json
 import os
 import io
 import boto3
-from datetime import datetime, timezone
+from datetime import datetime
 from dotenv import load_dotenv
 from zoneinfo import ZoneInfo
 IST = ZoneInfo("Asia/Kolkata")
@@ -15,7 +15,7 @@ LOG_DIR = "/var/log/parallax"
 
 
 def run_with_logging(label: str, fn):
-    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
+    timestamp = datetime.now(IST).strftime("%Y-%m-%d_%H-%M-%S")
     s3_key = f"logs/{label}/{timestamp}.log"
 
     buffer = io.StringIO()
