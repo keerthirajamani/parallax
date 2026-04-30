@@ -77,6 +77,14 @@ if mode == "signals":
     should_place_orders = "--place-orders" in sys.argv
     entity = event.get("entity", "unknown").lower()
     unit = event.get("unit", "unknown").lower()
+
+    if unit == "weeks":
+        from src.utils.nse_utils import is_last_trading_day_of_week
+        from datetime import date
+        if not is_last_trading_day_of_week(date.today()):
+            print(f"Skipping weekly EQUITY signals — {date.today()} is not the last trading day of the week")
+            sys.exit(0)
+
     def run_signals():
         print(f"Signal Genaration Starting at {datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S %Z')} ")
         result = signal_lambda_handler(event, None)

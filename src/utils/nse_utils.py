@@ -65,14 +65,56 @@ def get_expiry(when: str = "current", kind: str = "weekly",
 
     raise ValueError(f"kind must be 'weekly' or 'monthly', got {kind!r}")
 
+def get_nse_holidays(year: int | None = None,
+                     calendar_name: str = "XNSE") -> list[date]:
+    """
+    NSE trading holidays for a given calendar year (excluding weekends).
+
+    Returns full-day market closures only — does not include Muhurat
+    trading sessions (e.g. Diwali Laxmi Pujan) which fall on weekends.
+    """
+    year = year or date.today().year
+    cal = mcal.get_calendar(calendar_name)
+    holidays = cal.holidays().holidays
+    return sorted(
+        date.fromisoformat(str(h)[:10])
+        for h in holidays
+        if str(h).startswith(str(year))
+    )
+
+def is_nse_holiday(d: date, calendar_name: str = "XNSE") -> bool:
+    """True if d is a weekday NSE holiday (weekends return False)."""
+    if d.weekday() >= 5:
+        return False
+    return d in get_nse_holidays(d.year, calendar_name)
+
+def is_last_trading_day_of_week(d: date, calendar_name: str = "XNSE") -> int:
+    """1 if d is the final trading day of its ISO week (Mon–Sun), else 0."""
+    cal = mcal.get_calendar(calendar_name)
+    monday = d - timedelta(days=d.weekday())
+    sunday = monday + timedelta(days=6)
+    valid = cal.valid_days(monday.isoformat(), sunday.isoformat()).date
+    return int(len(valid) > 0 and d == max(valid))
+
 
 if __name__ == "__main__":
-    for idx in INDEX_CONFIG:
-        print(f"\n{idx.upper()}")
-        for when in ("current", "next"):
-            for kind in ("weekly", "monthly"):
-                try:
-                    d = get_expiry(when, kind, idx)
-                    print(f"  {when:7} {kind:7}: {d}  {d:%a}")
-                except ValueError:
-                    print(f"  {when:7} {kind:7}: —  (no weeklies)")
+    today = date.today()
+    print(is_last_trading_day_of_week(today))
+    if not is_last_trading_day_of_week(today):
+        print("Not last trading day — skipping weekly signals")
+    else:
+        print("last trading day — No skipping weekly signals")
+
+        
+
+    # for h in get_nse_holidays(2026):
+    #     print(f"{h}  {h:%A}")
+    # for idx in INDEX_CONFIG:
+    #     print(f"\n{idx.upper()}")
+    #     for when in ("current", "next"):
+    #         for kind in ("weekly", "monthly"):
+    #             try:
+    #                 d = get_expiry(when, kind, idx)
+    #                 print(f"  {when:7} {kind:7}: {d}  {d:%a}")
+    #             except ValueError:
+    #                 print(f"  {when:7} {kind:7}: —  (no weeklies)")

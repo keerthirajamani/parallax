@@ -53,7 +53,9 @@ def portfolio_lambda_handler(event, _context):
             except Exception:
                 print(f"\n[ERROR] Failed to process {holding.get('tradingSymbol')} in account {account_id}")
                 traceback.print_exc()
+    return {"status":200, "message":"portfolio update completed"}
 
 
 if __name__ == "__main__":
-    portfolio_lambda_handler()
+    event = {"market":"india"}
+    print(portfolio_lambda_handler(event, None))
