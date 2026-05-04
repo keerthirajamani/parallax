@@ -117,6 +117,9 @@ jobs:
             aws ecr get-login-password --region $AWS_REGION | \
               docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
 
+            # Free up disk space before pulling
+            docker system prune -af --volumes || true
+
             # Pull latest image
             docker pull ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
 
