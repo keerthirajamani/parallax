@@ -53,6 +53,16 @@ class LTPFeed:
     def is_connected(self) -> bool:
         return self._connected.is_set()
 
+    def subscribe(self, instruments: List[str]) -> None:
+        """Add new instruments to the live feed after connection."""
+        if not self._connected.is_set():
+            logger.warning("LTPFeed: not connected yet, queuing instruments")
+            self._subscribed.extend(instruments)
+            return
+        self._subscribed.extend(instruments)
+        self._streamer.subscribe(instruments, self._mode)
+        logger.info("LTPFeed: subscribed %d new instrument(s)", len(instruments))
+
     # ---- internal ----
 
     def _on_open(self):

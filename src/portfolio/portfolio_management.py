@@ -38,7 +38,7 @@ def portfolio_lambda_handler(event, _context):
                 continue
             try:
                 print("\nExecuting for ", holding)
-                tgt_price = round(holding.get('avgCostPrice') + calculate_percentage(holding.get('avgCostPrice')), 2)
+                tgt_price = round(holding.get('avgCostPrice') + calculate_percentage(holding.get('avgCostPrice')), 1)
                 print(f"{holding.get('dpQty')}|{holding.get('tradingSymbol')}@{holding.get('avgCostPrice')}|tgt@{tgt_price}|ltp@{holding['lastTradedPrice']}")
 
                 if holding.get('tradingSymbol') in existing_fo_map:
