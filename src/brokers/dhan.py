@@ -53,14 +53,15 @@ def get_current_holding(client):
     try:
         if holdings['status'] == 'success':
             for stock in holdings['data']:
-                if stock['dpQty']>0: #filters only settled stock
-                    extracted_data.append({
-                        'tradingSymbol': stock['tradingSymbol'],
-                        'securityId': stock['securityId'],
-                        'dpQty': stock['dpQty'],
-                        'avgCostPrice': stock['avgCostPrice'],
-                        'lastTradedPrice': stock['lastTradedPrice']
-                    })
+                # if stock['dpQty']>0 or stock['t1Qty']>0:
+                extracted_data.append({
+                    'tradingSymbol': stock['tradingSymbol'],
+                    'securityId': stock['securityId'],
+                    'dpQty': stock['dpQty'],
+                    "t1Qty": stock['t1Qty'],
+                    'avgCostPrice': stock['avgCostPrice'],
+                    'lastTradedPrice': stock['lastTradedPrice']
+                })
         else:
             raise Exception(f"Error in getting Holdings: {holdings}")
     except Exception as e:

@@ -143,7 +143,7 @@ jobs:
             crontab - << 'CRON'
             CRON_TZ=Asia/Kolkata
             15 8,20 * * * docker exec parallax python scripts/run.py token_refresh >> /var/log/parallax/token_refresh.log 2>&1
-            30 8 * * 1-5 docker exec parallax python scripts/run.py portfolio_update '{"market":"india"}' >> /var/log/parallax/portfolio_update.log 2>&1
+            30 8 * * 1-5 docker exec parallax python scripts/run.py forever_order_update '{"market":"india"}' >> /var/log/parallax/portfolio_update.log 2>&1
             26 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"EQUITY"}' --place-orders >> /var/log/parallax/nse_daily.log 2>&1
             27 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"EQUITY"}' --place-orders >> /var/log/parallax/nse_weekly.log 2>&1
             CRON_TZ=America/New_York

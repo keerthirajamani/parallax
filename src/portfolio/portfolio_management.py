@@ -10,7 +10,7 @@ US_ENTITIES = {"us_equity", "us_index"}
 # market = "us" if entity.lower() in US_ENTITIES else "india"
 
 
-def portfolio_lambda_handler(event, _context):
+def forever_order_lambda_handler(event, _context):
     market   = event.get("market")
     accounts = load_accounts(market=market)
     clients  = _prefetch_clients(accounts)
@@ -33,7 +33,7 @@ def portfolio_lambda_handler(event, _context):
 
         for holding in holdings:
             print("holding", holding)
-            if holding.get('tradingSymbol') in EXCLUDE_FOREVER_ORDER_SYMBOLS:
+            if holding.get('tradingSymbol') in EXCLUDE_FOREVER_ORDER_SYMBOLS or holding.get('t1Qty'):
                 print(f"\nSkipping forever order for {holding.get('tradingSymbol')}")
                 continue
             try:
@@ -50,10 +50,10 @@ def portfolio_lambda_handler(event, _context):
                     }
                     print(f"order_info {order_info}")
                     print(f"\nForever Order already exists for {holding.get('tradingSymbol')}")
-                    dhan_broker.modify_forever_order(client, order_info.get('orderId'), holding.get('dpQty'), tgt_price, tgt_price, order_info.get('orderFlag'), order_info.get('legName'))
+                    # dhan_broker.modify_forever_order(client, order_info.get('orderId'), holding.get('dpQty'), tgt_price, tgt_price, order_info.get('orderFlag'), order_info.get('legName'))
                 else:
                     print(f"\nForever Order doesn't exists for {holding.get('tradingSymbol')}")
-                    dhan_broker.place_forever_order(client, holding.get('securityId'), holding.get('dpQty'), tgt_price, tgt_price)
+                    # dhan_broker.place_forever_order(client, holding.get('securityId'), holding.get('dpQty'), tgt_price, tgt_price)
 
             except Exception:
                 print(f"\n[ERROR] Failed to process {holding.get('tradingSymbol')} in account {account_id}")
@@ -63,4 +63,4 @@ def portfolio_lambda_handler(event, _context):
 
 if __name__ == "__main__":
     event = {"market":"india"}
-    print(portfolio_lambda_handler(event, None))
+    print(forever_order_lambda_handler(event, None))
