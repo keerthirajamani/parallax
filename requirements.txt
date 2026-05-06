@@ -11,3 +11,4 @@ python-dotenv
 numpy==2.2.6
 dhanhq==2.0.2
 pandas_market_calendars==5.3.2
+# upstox-python-sdk==2.24.0

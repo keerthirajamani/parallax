@@ -92,8 +92,8 @@ if mode == "signals":
         print(f"signals result: {json.dumps(result, default=str, indent=2)}")
         if should_place_orders:
             print("placing orders...")
-            # order_results = place_orders(result, entity=entity)
-            # print(f"order results: {json.dumps(order_results, default=str, indent=2)}")
+            order_results = place_orders(result, entity=entity)
+            print(f"order results: {json.dumps(order_results, default=str, indent=2)}")
             print(f"Orders Completed at {datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S %Z')} ")
     run_with_logging(f"{entity}_{unit}", run_signals)
 
@@ -106,11 +106,11 @@ elif mode == "token_refresh":
 
     run_with_logging("token_refresh", run_token)
 
-elif mode == "portfolio_update":
-    from src.portfolio.portfolio_management import portfolio_lambda_handler
+elif mode == "forever_order_update":
+    from src.portfolio.portfolio_management import forever_order_lambda_handler
     event = json.loads(sys.argv[2])
-    def run_portfolio_update():
-        result = portfolio_lambda_handler(event, None)
+    def run_forever_update():
+        result = forever_order_lambda_handler(event, None)
         print(f"portfolio_update result: {json.dumps(result, default=str)}")
 
-    run_with_logging("portfolio_update", run_portfolio_update)        
+    run_with_logging("portfolio_update", run_forever_update)        

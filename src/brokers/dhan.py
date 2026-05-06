@@ -50,16 +50,22 @@ def get_current_holding(client):
     print("\nGetting Holding ...")
     holdings = client.get_holdings()
     extracted_data = []
-    if holdings['status'] == 'success':
-        for stock in holdings['data']:
-            if stock['dpQty']>0: #filters only settled stock
+    try:
+        if holdings['status'] == 'success':
+            for stock in holdings['data']:
+                # if stock['dpQty']>0 or stock['t1Qty']>0:
                 extracted_data.append({
                     'tradingSymbol': stock['tradingSymbol'],
                     'securityId': stock['securityId'],
                     'dpQty': stock['dpQty'],
+                    "t1Qty": stock['t1Qty'],
                     'avgCostPrice': stock['avgCostPrice'],
                     'lastTradedPrice': stock['lastTradedPrice']
                 })
+        else:
+            raise Exception(f"Error in getting Holdings: {holdings}")
+    except Exception as e:
+        raise Exception(f"Error getting holdings : {e}")
     return extracted_data
 
 def place_forever_order(client, 
@@ -117,27 +123,36 @@ def get_forever_order(client):
     print("\nGetting Forever order ...")
     forever_orders = client.get_forever()
     extracted_data = []
-    if forever_orders['status'] == 'success':
-        for stock in forever_orders['data']:
-            extracted_data.append({
-                'dhanClientId': stock['dhanClientId'],
-                'orderId': stock['orderId'],
-                'orderStatus': stock['orderStatus'],
-                'transactionType': stock['transactionType'],
-                'productType': stock['productType'],
-                'orderType': stock['orderType'],
-                'tradingSymbol': stock['tradingSymbol'],
-                'securityId': stock['securityId'],
-                'quantity': stock['quantity'],
-                'price': stock['price'],
-                'triggerPrice': stock['triggerPrice'],
-                'legName': stock['legName']                
-            })
+    try:
+        if forever_orders['status'] == 'success':
+            for stock in forever_orders['data']:
+                extracted_data.append({
+                    'dhanClientId': stock['dhanClientId'],
+                    'orderId': stock['orderId'],
+                    'orderStatus': stock['orderStatus'],
+                    'transactionType': stock['transactionType'],
+                    'productType': stock['productType'],
+                    'orderType': stock['orderType'],
+                    'tradingSymbol': stock['tradingSymbol'],
+                    'securityId': stock['securityId'],
+                    'quantity': stock['quantity'],
+                    'price': stock['price'],
+                    'triggerPrice': stock['triggerPrice'],
+                    'legName': stock['legName']                
+                })
+        else:
+            raise Exception(f"Error in getting forever_orders: {forever_orders}")
+    except Exception as e:
+        raise Exception(f"Error getting forever_orders : {e}")
     return extracted_data
 
 def modify_forever_order(client, order_id, quantity, price, trigger_price, order_flag, leg_name, order_type="LIMIT", disclosed_quantity=0, validity="DAY"):
     print("\nModifying Forever Order ...")
-    modify_forever_orders = client.modify_forever(order_id, order_flag, order_type, leg_name,
-                       quantity, price, trigger_price, disclosed_quantity, validity)
-    
+    try:
+        modify_forever_orders = client.modify_forever(order_id, order_flag, order_type, leg_name,
+                        quantity, price, trigger_price, disclosed_quantity, validity)
+        if modify_forever_orders['status'] == 'failure':
+            print(f"Forever order modification failed: {modify_forever_orders}")
+    except Exception as e:
+        print(f"Forever order modification failed: {modify_forever_orders}")
     return modify_forever_orders

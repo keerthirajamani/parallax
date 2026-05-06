@@ -106,6 +106,9 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: AWS_REGION,ECR_REPOSITORY
           script: |
+            # Ensure ec2-user can run docker without sudo
+            sudo usermod -aG docker ec2-user || true
+
             # Ensure app directory exists
             sudo mkdir -p /app
             sudo chown -R ec2-user:ec2-user /app
@@ -115,15 +118,18 @@ jobs:
 
             # Login to ECR
             aws ecr get-login-password --region $AWS_REGION | \
-              docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+              sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+
+            # Free up disk space before pulling
+            # sudo docker system prune -af --volumes || true
 
             # Pull latest image
-            docker pull ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
+            sudo docker pull ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
 
             # Restart container
-            docker stop parallax || true
-            docker rm parallax || true
-            docker run -d \
+            sudo docker stop parallax || true
+            sudo docker rm parallax || true
+            sudo docker run -d \
               --name parallax \
               --env-file /app/.env \
               --restart unless-stopped \
@@ -137,12 +143,12 @@ jobs:
             crontab - << 'CRON'
             CRON_TZ=Asia/Kolkata
             15 8,20 * * * docker exec parallax python scripts/run.py token_refresh >> /var/log/parallax/token_refresh.log 2>&1
-            30 8 * * 1-5 docker exec parallax python scripts/run.py portfolio_update '{"market":"india"}' >> /var/log/parallax/portfolio_update.log 2>&1
+            30 8 * * 1-5 docker exec parallax python scripts/run.py forever_order_update '{"market":"india"}' >> /var/log/parallax/portfolio_update.log 2>&1
             26 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"EQUITY"}' --place-orders >> /var/log/parallax/nse_daily.log 2>&1
             27 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"EQUITY"}' --place-orders >> /var/log/parallax/nse_weekly.log 2>&1
             CRON_TZ=America/New_York
             54 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_daily.log 2>&1
-            55 15 * * 5   docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_weekly.log 2>&1
+            55 15 * * 5 docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_weekly.log 2>&1
             CRON
 
             echo "Deployed successfully"
