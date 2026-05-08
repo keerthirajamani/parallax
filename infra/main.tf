@@ -107,25 +107,9 @@ resource "aws_instance" "parallax" {
     #!/bin/bash
     dnf update -y
     dnf install -y docker cronie awscli
-
-    curl -1sLf 'https://dl.redpanda.com/nZEXoJh8/redpanda/setup.rpm.sh' | bash
-    dnf install -y redpanda
-    rpk redpanda config set redpanda.developer_mode true
-    rpk redpanda config set redpanda.cloud_storage_enabled true
-    rpk redpanda config set redpanda.cloud_storage_region us-east-1
-    rpk redpanda config set redpanda.cloud_storage_bucket us-east-1-parallax-redpanda
-    rpk redpanda config set redpanda.cloud_storage_credentials_source aws_instance_metadata
-    systemctl enable redpanda
-    systemctl start redpanda
-
     systemctl enable docker crond
     systemctl start docker crond
     usermod -aG docker ec2-user
-
-    sleep 15
-    rpk topic create signals \
-      -c redpanda.remote.write=true \
-      -c redpanda.remote.read=true
   EOF
 
   tags = {
@@ -133,26 +117,12 @@ resource "aws_instance" "parallax" {
   }
 }
 
-# ── Redpanda Tiered Storage Bucket ───────────────────────────────────────────
+# ── SQS Queue ────────────────────────────────────────────────────────────────
 
-resource "aws_s3_bucket" "redpanda" {
-  bucket = "us-east-1-parallax-redpanda"
-  tags   = { Name = "parallax-redpanda" }
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "redpanda" {
-  bucket = aws_s3_bucket.redpanda.id
-
-  rule {
-    id     = "expire-old-segments"
-    status = "Enabled"
-
-    filter {}
-
-    expiration {
-      days = 180
-    }
-  }
+resource "aws_sqs_queue" "signals" {
+  name                      = "parallax-signals"
+  message_retention_seconds = 1209600
+  tags                      = { Name = "parallax-signals" }
 }
 
 # ── Elastic IP (free while instance is running) ───────────────────────────────
@@ -204,19 +174,9 @@ resource "aws_iam_role_policy" "parallax" {
         Resource = "arn:aws:s3:::${var.s3_bucket}"
       },
       {
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:DeleteObject",
-          "s3:AbortMultipartUpload"
-        ]
-        Resource = "arn:aws:s3:::us-east-1-parallax-redpanda/*"
-      },
-      {
         Effect   = "Allow"
-        Action   = ["s3:ListBucket"]
-        Resource = "arn:aws:s3:::us-east-1-parallax-redpanda"
+        Action   = ["sqs:SendMessage"]
+        Resource = aws_sqs_queue.signals.arn
       },
       {
         Effect = "Allow"
