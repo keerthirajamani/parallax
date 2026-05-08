@@ -113,4 +113,4 @@ elif mode == "forever_order_update":
         result = forever_order_lambda_handler(event, None)
         print(f"portfolio_update result: {json.dumps(result, default=str)}")
 
-    run_with_logging("portfolio_update", run_forever_update)        
+    run_with_logging("portfolio_update", run_forever_update)

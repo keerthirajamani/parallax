@@ -199,4 +199,3 @@ if __name__ == "__main__":
     # event = {"unit": "days", "interval": 1, "entity": "US_EQUITY"}
     # event = {"unit": "weeks",  "interval": 1, "entity": "US_EQUITY"}
     print(signal_lambda_handler(event, None))
-
