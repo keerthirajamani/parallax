@@ -132,6 +132,7 @@ jobs:
             sudo docker rm parallax || true
             sudo docker run -d \
               --name parallax \
+              --network host \
               --env-file /app/.env \
               --restart unless-stopped \
               ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
