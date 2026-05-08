@@ -106,6 +106,9 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: AWS_REGION,ECR_REPOSITORY
           script: |
+            # Wait for user_data (Docker + Redpanda install) to finish
+            until sudo systemctl is-active --quiet docker; do sleep 5; done
+
             # Ensure ec2-user can run docker without sudo
             sudo usermod -aG docker ec2-user || true
 
