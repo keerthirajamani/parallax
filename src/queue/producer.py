@@ -13,6 +13,7 @@ def _get_producer() -> KafkaProducer:
         _producer = KafkaProducer(
             bootstrap_servers=bootstrap,
             value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+            api_version=(2, 0, 0),
         )
     return _producer
 
