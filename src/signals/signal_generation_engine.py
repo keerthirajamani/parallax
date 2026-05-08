@@ -14,6 +14,7 @@ from src.utils.common_utils import (
 )
 from src.utils.indicators import three_horse_crow, ut_bot_alerts
 from src.config.symbols import resolve_symbol_map
+from src.queue.producer import publish_signal
 
 
 # ── Constants ─────────────────────────────────────────────────────────────────
@@ -175,13 +176,15 @@ def signal_lambda_handler(event, _context):
             continue
         else:
             print(f"signal : {symbol}")
-        results.append({
+        payload = {
             "mode":       entity,
             "unit":       unit,
             "instrument": symbol_map[symbol],
             "interval":   us_interval if is_us else interval,
             "signals":    signals,
-        })
+        }
+        publish_signal(payload)
+        results.append(payload)
 
     if results:
         SIGNALS_BUCKET = os.environ.get("SIGNALS_BUCKET", "us-east-1-parallax-bucket")
