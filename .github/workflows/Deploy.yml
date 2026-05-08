@@ -121,6 +121,7 @@ jobs:
               sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
 
             # Free up disk space before pulling
+            docker image prune -f || true
             # sudo docker system prune -af --volumes || true
 
             # Pull latest image
