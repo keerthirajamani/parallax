@@ -164,7 +164,7 @@ jobs:
             26 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"IN_EQUITY"}' --place-orders >> /var/log/parallax/nse_daily.log 2>&1
             27 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"IN_EQUITY"}' --place-orders >> /var/log/parallax/nse_weekly.log 2>&1
             CRON_TZ=America/New_York
-            54 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_daily.log 2>&1
+            54 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"US_EQUITY"}'  --place-orders >> /var/log/parallax/nyse_daily.log 2>&1
             55 15 * * 5 sudo docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_weekly.log 2>&1
             CRON
 

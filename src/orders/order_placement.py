@@ -98,7 +98,7 @@ class OrderPlacer:
         if not _is_market_open(entity):
             tz = EST if entity.lower() in US_ENTITIES else IST
             print(f"OrderPlacer: market closed at {datetime.now(tz).strftime('%H:%M:%S')} for entity={entity}, skipping")
-            return {"status": "skipped", "reason": "market_closed"}
+            # return {"status": "skipped", "reason": "market_closed"}
 
         market   = "us" if entity.lower() in US_ENTITIES else "india"
         accounts = self._us_accounts   if market == "us" else self._india_accounts
