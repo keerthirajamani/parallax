@@ -147,7 +147,7 @@ def get_us_signals(symbol_map: dict, interval: str = "1d") -> dict:
     return results
 
 
-def signal_lambda_handler(event, _context):
+def signal_lambda_handler(event, _context, should_place_orders=False):
     entity   = event.get("entity")
     unit     = event.get("unit")
     interval = event.get("interval")
@@ -183,7 +183,8 @@ def signal_lambda_handler(event, _context):
             "interval":   us_interval if is_us else interval,
             "signals":    signals,
         }
-        publish_signal(payload)
+        if should_place_orders:
+            publish_signal(payload)
         results.append(payload)
 
     if results:

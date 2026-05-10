@@ -19,5 +19,5 @@ def _get_producer() -> KafkaProducer:
 
 
 def publish_signal(payload: dict) -> None:
-    topic = os.environ.get("SIGNALS_TOPIC", "signals")
+    topic = os.environ.get("SIGNALS_TOPIC", "parallax-signals")
     _get_producer().send(topic, value=payload)

@@ -87,14 +87,14 @@ if mode == "signals":
 
     def run_signals():
         print(f"Signal Genaration Starting at {datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S %Z')} ")
-        result = signal_lambda_handler(event, None)
+        result = signal_lambda_handler(event, None, should_place_orders=should_place_orders)
         print(f"Signal Genaration Completed at {datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S %Z')} ")
         print(f"signals result: {json.dumps(result, default=str, indent=2)}")
-        if should_place_orders:
-            print("placing orders...")
-            order_results = place_orders(result, entity=entity)
-            print(f"order results: {json.dumps(order_results, default=str, indent=2)}")
-            print(f"Orders Completed at {datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S %Z')} ")
+        # if should_place_orders:
+        #     print("placing orders...")
+        #     order_results = place_orders(result, entity=entity)
+        #     print(f"order results: {json.dumps(order_results, default=str, indent=2)}")
+        #     print(f"Orders Completed at {datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S %Z')} ")
     run_with_logging(f"{entity}_{unit}", run_signals)
 
 elif mode == "consumer":
