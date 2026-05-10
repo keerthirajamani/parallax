@@ -115,6 +115,40 @@ def place_orders(signals: list[dict], entity: str) -> dict:
     return results
 
 
+class OrderPlacer:
+    def __init__(self):
+        self._india_accounts, self._india_clients = self._load("india")
+        self._us_accounts,    self._us_clients    = self._load("us")
+
+    def _load(self, market: str):
+        accounts = load_accounts(market=market)
+        clients  = _prefetch_clients(accounts)
+        print(f"OrderPlacer: loaded {len(accounts)} accounts for market={market}")
+        return accounts, clients
+
+    def place_orders(self, signals: list[dict], entity: str) -> dict:
+        if not _is_market_open(entity):
+            tz = EST if entity.lower() in US_ENTITIES else IST
+            print(f"OrderPlacer: market closed at {datetime.now(tz).strftime('%H:%M:%S')} for entity={entity}, skipping")
+
+        market   = "us" if entity.lower() in US_ENTITIES else "india"
+        accounts = self._us_accounts   if market == "us" else self._india_accounts
+        clients  = self._us_clients    if market == "us" else self._india_clients
+
+        print(f"OrderPlacer: entity={entity} market={market} accounts={len(accounts)}")
+        results = {}
+        for account in accounts:
+            account_id = account["account_id"]
+            print(f"OrderPlacer: processing account={account_id} broker={account['broker']}")
+            try:
+                summary = _place_orders_for_account(account, clients[account_id], signals, market)
+                results[account_id] = {"status": "ok", "orders_placed": summary}
+            except Exception as exc:
+                print(f"OrderPlacer: account={account_id} failed: {exc}")
+                results[account_id] = {"status": "error", "error": str(exc)}
+        return results
+
+
 def _resolve_capital(account: dict, market: str) -> float:
     """
     Returns max_trade_capital for the given market.
