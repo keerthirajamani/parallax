@@ -10,5 +10,6 @@ COPY src/ src/
 COPY scripts/ scripts/
 
 ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
 
 CMD ["tail", "-f", "/dev/null"]
