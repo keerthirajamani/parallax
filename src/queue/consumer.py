@@ -30,4 +30,4 @@ def consume():
             continue
 
         print(f"consumer: offset={message.offset} entity={entity} signals={len(signals)}")
-        placer.place_orders([payload], entity)
+        print(placer.place_orders([payload], entity))

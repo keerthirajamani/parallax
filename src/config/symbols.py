@@ -1,12 +1,12 @@
 EXCLUDE_FOREVER_ORDER_SYMBOLS = {"GOLDBEES"}
 
-INDEX_SYMBOLS = {
+IN_INDEX_SYMBOLS = {
         "nifty50":   {"exchange": "NSE_INDEX|Nifty 50",        "security_id": "13"},
         "banknifty": {"exchange": "NSE_INDEX|Nifty Bank",       "security_id": "25"},
         "finnifty":  {"exchange": "NSE_INDEX|Nifty Fin Service","security_id": "27"},
         "sensex":    {"exchange": "BSE_INDEX|SENSEX",           "security_id": "51"},
     }
-EQUITY_SYMBOLS = {
+IN_EQUITY_SYMBOLS = {
         "ONGC":       {"exchange": "NSE_EQ", "isin": "INE213A01029", "security_id": "2475"},
         "WIPRO":      {"exchange": "NSE_EQ", "isin": "INE075A01022", "security_id": "3787"},
         "BHARTIARTL": {"exchange": "NSE_EQ", "isin": "INE397D01024", "security_id": "10604"},
@@ -63,7 +63,6 @@ US_INDEX_SYMBOLS = {
     "NASDAQ":   {"ticker": "^IXIC"},
     "DOWJONES": {"ticker": "^DJI"},
 }
-
 US_EQUITY_SYMBOLS = {
     # Dow Jones 30
     "AAPL":   {"ticker": "AAPL"},
@@ -159,8 +158,8 @@ US_EQUITY_SYMBOLS = {
 }
 
 SYMBOL_REGISTRY = {
-    "INDEX":     INDEX_SYMBOLS,
-    "EQUITY":    EQUITY_SYMBOLS,
+    "IN_INDEX":     IN_INDEX_SYMBOLS,
+    "IN_EQUITY": IN_EQUITY_SYMBOLS,
     "US_INDEX":  US_INDEX_SYMBOLS,
     "US_EQUITY": US_EQUITY_SYMBOLS,
 }

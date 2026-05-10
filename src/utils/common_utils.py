@@ -134,7 +134,7 @@ def fetch_candles(instrument: str, unit: str, interval: str, headers, entity: st
         ts = datetime.fromisoformat(c[0])  # Upstox gives TZ-aware ISO
         if ts + duration <= now_ist:
             closed.append(c)
-        elif entity == "EQUITY" and ts <= now_ist:
+        elif entity == "IN_EQUITY" and ts <= now_ist:
             closed.append(c)
 
     logger.info("closed_candles instrument=%s closed=%d dropped=%d",

@@ -197,9 +197,9 @@ def signal_lambda_handler(event, _context, should_place_orders=False):
 
 # ── Local test ────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    event = {"unit": "hours",  "interval": 1, "entity": "INDEX"}
-    # event = {"unit": "days",   "interval": 1, "entity": "EQUITY"}
-    # event = {"unit": "weeks",   "interval": 1, "entity": "EQUITY"}
+    event = {"unit": "hours",  "interval": 1, "entity": "IN_INDEX"}
+    # event = {"unit": "days",   "interval": 1, "entity": "IN_EQUITY"}
+    # event = {"unit": "weeks",   "interval": 1, "entity": "IN_EQUITY"}
     # event = {"unit": "days", "interval": 1, "entity": "US_EQUITY"}
     # event = {"unit": "weeks",  "interval": 1, "entity": "US_EQUITY"}
     print(signal_lambda_handler(event, None))

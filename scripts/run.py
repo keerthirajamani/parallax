@@ -81,7 +81,7 @@ if mode == "signals":
         from src.utils.nse_utils import is_last_trading_day_of_week
         from datetime import date
         if not is_last_trading_day_of_week(date.today()):
-            print(f"Skipping weekly EQUITY signals — {date.today()} is not the last trading day of the week")
+            print(f"Skipping weekly signals — {date.today()} is not the last trading day of the week")
             sys.exit(0)
 
     def run_signals():
