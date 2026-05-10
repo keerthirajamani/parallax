@@ -18,6 +18,13 @@ def _get_producer() -> KafkaProducer:
     return _producer
 
 
+_US_ENTITIES = {"us_equity", "us_index"}
+
+
 def publish_signal(payload: dict) -> None:
-    topic = os.environ.get("SIGNALS_TOPIC", "parallax-signals")
+    entity = payload.get("mode", "").lower()
+    if entity in _US_ENTITIES:
+        topic = os.environ.get("SIGNALS_TOPIC_US", "parallax-signals-us")
+    else:
+        topic = os.environ.get("SIGNALS_TOPIC_INDIA", "parallax-signals-india")
     _get_producer().send(topic, value=payload)

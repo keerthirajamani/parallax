@@ -84,9 +84,9 @@ def _place_order(client, broker: str, sig: dict, side: str, qty: int) -> str:
 
 
 class OrderPlacer:
-    def __init__(self):
-        self._india_accounts, self._india_clients = self._load("india")
-        self._us_accounts,    self._us_clients    = self._load("us")
+    def __init__(self, market: str):
+        self._market   = market
+        self._accounts, self._clients = self._load(market)
 
     def _load(self, market: str):
         accounts = load_accounts(market=market)
@@ -98,23 +98,19 @@ class OrderPlacer:
         if not _is_market_open(entity):
             tz = EST if entity.lower() in US_ENTITIES else IST
             print(f"OrderPlacer: market closed at {datetime.now(tz).strftime('%H:%M:%S')} for entity={entity}, skipping")
-            # return {"status": "skipped", "reason": "market_closed"}
+            return {"status": "skipped", "reason": "market_closed"}
 
-        market   = "us" if entity.lower() in US_ENTITIES else "india"
-        accounts = self._us_accounts   if market == "us" else self._india_accounts
-        clients  = self._us_clients    if market == "us" else self._india_clients
-
-        if not accounts:
-            print(f"OrderPlacer: no accounts loaded for market={market}, skipping")
+        if not self._accounts:
+            print(f"OrderPlacer: no accounts loaded for market={self._market}, skipping")
             return {"status": "skipped", "reason": "no_accounts"}
 
-        print(f"OrderPlacer: entity={entity} market={market} accounts={len(accounts)}")
+        print(f"OrderPlacer: entity={entity} market={self._market} accounts={len(self._accounts)}")
         results = {}
-        for account in accounts:
+        for account in self._accounts:
             account_id = account["account_id"]
             print(f"OrderPlacer: processing account={account_id} broker={account['broker']}")
             try:
-                summary = _place_orders_for_account(account, clients[account_id], signals, market)
+                summary = _place_orders_for_account(account, self._clients[account_id], signals, self._market)
                 results[account_id] = {"status": "ok", "orders_placed": summary}
             except Exception as exc:
                 print(f"OrderPlacer: account={account_id} failed: {exc}")

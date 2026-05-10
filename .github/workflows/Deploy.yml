@@ -125,12 +125,11 @@ jobs:
 
             # Free up disk space before pulling
             docker image prune -f || true
-            # sudo docker system prune -af --volumes || true
 
             # Pull latest image
             sudo docker pull ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
 
-            # Restart main container
+            # Main container
             sudo docker stop parallax || true
             sudo docker rm parallax || true
             sudo docker run -d \
@@ -140,16 +139,27 @@ jobs:
               --restart unless-stopped \
               ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
 
-            # Restart consumer container (long-running, auto-restarts on crash)
-            sudo docker stop parallax-consumer || true
-            sudo docker rm parallax-consumer || true
+            # India consumer
+            sudo docker stop parallax-consumer-india || true
+            sudo docker rm parallax-consumer-india || true
             sudo docker run -d \
-              --name parallax-consumer \
+              --name parallax-consumer-india \
               --network host \
               --env-file /app/.env \
               --restart unless-stopped \
               ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest \
-              python scripts/run.py consumer
+              python scripts/run.py consumer india
+
+            # US consumer
+            sudo docker stop parallax-consumer-us || true
+            sudo docker rm parallax-consumer-us || true
+            sudo docker run -d \
+              --name parallax-consumer-us \
+              --network host \
+              --env-file /app/.env \
+              --restart unless-stopped \
+              ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest \
+              python scripts/run.py consumer us
 
             # Create log directory
             sudo mkdir -p /var/log/parallax
@@ -159,13 +169,15 @@ jobs:
             crontab - << 'CRON'
             CRON_TZ=Asia/Kolkata
             15 8,20 * * * sudo docker exec parallax python scripts/run.py token_refresh >> /var/log/parallax/token_refresh.log 2>&1
-            20 8,20 * * * sudo docker restart parallax-consumer
+            20 9 * * 1-5 sudo docker start parallax-consumer-india
             30 8 * * 1-5 sudo docker exec parallax python scripts/run.py forever_order_update '{"market":"india"}' >> /var/log/parallax/portfolio_update.log 2>&1
             26 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"IN_EQUITY"}' --place-orders >> /var/log/parallax/nse_daily.log 2>&1
             27 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"IN_EQUITY"}' --place-orders >> /var/log/parallax/nse_weekly.log 2>&1
+            05 16 * * 1-5 sudo docker stop parallax-consumer-india
             CRON_TZ=America/New_York
-            54 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"US_EQUITY"}'  --place-orders >> /var/log/parallax/nyse_daily.log 2>&1
-            55 15 * * 5 sudo docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_weekly.log 2>&1
+            # 20 8,20 * * 1-5 sudo docker restart parallax-consumer-us
+            54 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"US_EQUITY"}' --place-orders >> /var/log/parallax/nyse_daily.log 2>&1
+            55 15 * * 5 sudo docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"US_EQUITY"}' --place-orders >> /var/log/parallax/nyse_weekly.log 2>&1
             CRON
 
             echo "Deployed successfully"

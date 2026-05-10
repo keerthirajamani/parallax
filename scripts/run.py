@@ -98,7 +98,8 @@ if mode == "signals":
 
 elif mode == "consumer":
     from src.queue.consumer import consume
-    consume()
+    market = sys.argv[2] if len(sys.argv) > 2 else "india"
+    consume(market)
 
 elif mode == "token_refresh":
     from src.orders.access_token_updater import token_lambda_handler
