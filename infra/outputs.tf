@@ -10,8 +10,3 @@ output "instance_id" {
 output "instance_name" {
   value = aws_instance.parallax.tags["Name"]
 }
-
-output "signals_queue_url" {
-  value       = aws_sqs_queue.signals.url
-  description = "Add this as SIGNALS_QUEUE_URL in the APP_ENV_FILE secret"
-}

@@ -1,18 +1,23 @@
 import json
 import os
 
-import boto3
+from kafka import KafkaProducer
 
-_client = None
+_producer = None
 
 
-def _get_client():
-    global _client
-    if _client is None:
-        _client = boto3.client("sqs", region_name=os.environ.get("AWS_REGION", "us-east-1"))
-    return _client
+def _get_producer() -> KafkaProducer:
+    global _producer
+    if _producer is None:
+        bootstrap = os.environ.get("REDPANDA_BROKERS", "localhost:9092")
+        _producer = KafkaProducer(
+            bootstrap_servers=bootstrap,
+            value_serializer=lambda v: json.dumps(v).encode("utf-8"),
+            api_version=(2, 0, 0),
+        )
+    return _producer
 
 
 def publish_signal(payload: dict) -> None:
-    queue_url = os.environ.get("SIGNALS_QUEUE_URL")
-    _get_client().send_message(QueueUrl=queue_url, MessageBody=json.dumps(payload))
+    topic = os.environ.get("SIGNALS_TOPIC", "signals")
+    _get_producer().send(topic, value=payload)
