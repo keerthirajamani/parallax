@@ -104,6 +104,10 @@ class OrderPlacer:
         accounts = self._us_accounts   if market == "us" else self._india_accounts
         clients  = self._us_clients    if market == "us" else self._india_clients
 
+        if not accounts:
+            print(f"OrderPlacer: no accounts loaded for market={market}, skipping")
+            return {"status": "skipped", "reason": "no_accounts"}
+
         print(f"OrderPlacer: entity={entity} market={market} accounts={len(accounts)}")
         results = {}
         for account in accounts:
