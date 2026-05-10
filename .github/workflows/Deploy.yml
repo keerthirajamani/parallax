@@ -140,7 +140,7 @@ jobs:
               --restart unless-stopped \
               ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
 
-            # Restart consumer container (long-running, always on)
+            # Restart consumer container (long-running, auto-restarts on crash)
             sudo docker stop parallax-consumer || true
             sudo docker rm parallax-consumer || true
             sudo docker run -d \
