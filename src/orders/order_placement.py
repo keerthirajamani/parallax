@@ -94,7 +94,7 @@ def place_orders(signals: list[dict], entity: str) -> dict:
     if not _is_market_open(entity):
         tz = EST if entity.lower() in US_ENTITIES else IST
         print(f"place_orders: market closed at {datetime.now(tz).strftime('%H:%M:%S')} for entity={entity}, skipping")
-        return {"status": "skipped", "reason": "market_closed"}
+        # return {"status": "skipped", "reason": "market_closed"}
 
     market = "us" if entity.lower() in US_ENTITIES else "india"
     accounts = load_accounts(market=market)

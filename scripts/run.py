@@ -97,6 +97,10 @@ if mode == "signals":
             print(f"Orders Completed at {datetime.now(IST).strftime('%Y-%m-%d %H:%M:%S %Z')} ")
     run_with_logging(f"{entity}_{unit}", run_signals)
 
+elif mode == "consumer":
+    from src.queue.consumer import consume
+    consume()
+
 elif mode == "token_refresh":
     from src.orders.access_token_updater import token_lambda_handler
 

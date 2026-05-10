@@ -130,7 +130,7 @@ jobs:
             # Pull latest image
             sudo docker pull ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
 
-            # Restart container
+            # Restart main container
             sudo docker stop parallax || true
             sudo docker rm parallax || true
             sudo docker run -d \
@@ -140,6 +140,17 @@ jobs:
               --restart unless-stopped \
               ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
 
+            # Restart consumer container (long-running, always on)
+            sudo docker stop parallax-consumer || true
+            sudo docker rm parallax-consumer || true
+            sudo docker run -d \
+              --name parallax-consumer \
+              --network host \
+              --env-file /app/.env \
+              --restart unless-stopped \
+              ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest \
+              python scripts/run.py consumer
+
             # Create log directory
             sudo mkdir -p /var/log/parallax
             sudo chown ec2-user:ec2-user /var/log/parallax
@@ -147,13 +158,13 @@ jobs:
             # Install crontab (idempotent — replaces on every deploy)
             crontab - << 'CRON'
             CRON_TZ=Asia/Kolkata
-            15 8,20 * * * docker exec parallax python scripts/run.py token_refresh >> /var/log/parallax/token_refresh.log 2>&1
-            30 8 * * 1-5 docker exec parallax python scripts/run.py forever_order_update '{"market":"india"}' >> /var/log/parallax/portfolio_update.log 2>&1
-            26 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"EQUITY"}' --place-orders >> /var/log/parallax/nse_daily.log 2>&1
-            27 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"EQUITY"}' --place-orders >> /var/log/parallax/nse_weekly.log 2>&1
+            15 8,20 * * * sudo docker exec parallax python scripts/run.py token_refresh >> /var/log/parallax/token_refresh.log 2>&1
+            30 8 * * 1-5 sudo docker exec parallax python scripts/run.py forever_order_update '{"market":"india"}' >> /var/log/parallax/portfolio_update.log 2>&1
+            26 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"EQUITY"}' --place-orders >> /var/log/parallax/nse_daily.log 2>&1
+            27 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"EQUITY"}' --place-orders >> /var/log/parallax/nse_weekly.log 2>&1
             CRON_TZ=America/New_York
-            54 15 * * 1-5 docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_daily.log 2>&1
-            55 15 * * 5 docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_weekly.log 2>&1
+            54 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_daily.log 2>&1
+            55 15 * * 5 sudo docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"US_EQUITY"}' >> /var/log/parallax/nyse_weekly.log 2>&1
             CRON
 
             echo "Deployed successfully"
