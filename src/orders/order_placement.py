@@ -83,38 +83,6 @@ def _place_order(client, broker: str, sig: dict, side: str, qty: int) -> str:
     return module.place_order(client, sig, side, qty)
 
 
-# ── main entry point ──────────────────────────────────────────────────────────
-
-def place_orders(signals: list[dict], entity: str) -> dict:
-    """
-    Fan out signals to every enabled account across all brokers.
-    entity: "EQUITY" / "INDEX" for Indian market, "US_EQUITY" / "US_INDEX" for US market.
-    Returns a summary keyed by account_id.
-    """
-    if not _is_market_open(entity):
-        tz = EST if entity.lower() in US_ENTITIES else IST
-        print(f"place_orders: market closed at {datetime.now(tz).strftime('%H:%M:%S')} for entity={entity}, skipping")
-        # return {"status": "skipped", "reason": "market_closed"}
-
-    market = "us" if entity.lower() in US_ENTITIES else "india"
-    accounts = load_accounts(market=market)
-    print(f"place_orders: entity={entity} market={market} accounts={len(accounts)}")
-    clients  = _prefetch_clients(accounts)
-
-    results = {}
-    for account in accounts:
-        account_id = account["account_id"]
-        print(f"place_orders: processing account={account_id} broker={account['broker']}")
-        try:
-            summary = _place_orders_for_account(account, clients[account_id], signals, market)
-            results[account_id] = {"status": "ok", "orders_placed": summary}
-        except Exception as exc:
-            print(f"place_orders: account={account_id} failed: {exc}")
-            results[account_id] = {"status": "error", "error": str(exc)}
-
-    return results
-
-
 class OrderPlacer:
     def __init__(self):
         self._india_accounts, self._india_clients = self._load("india")
@@ -130,6 +98,7 @@ class OrderPlacer:
         if not _is_market_open(entity):
             tz = EST if entity.lower() in US_ENTITIES else IST
             print(f"OrderPlacer: market closed at {datetime.now(tz).strftime('%H:%M:%S')} for entity={entity}, skipping")
+            return {"status": "skipped", "reason": "market_closed"}
 
         market   = "us" if entity.lower() in US_ENTITIES else "india"
         accounts = self._us_accounts   if market == "us" else self._india_accounts

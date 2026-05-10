@@ -72,7 +72,6 @@ mode = sys.argv[1]
 
 if mode == "signals":
     from src.signals.signal_generation_engine import signal_lambda_handler
-    from src.orders.order_placement import place_orders
     event = json.loads(sys.argv[2])
     should_place_orders = "--place-orders" in sys.argv
     entity = event.get("entity", "unknown").lower()

@@ -123,7 +123,7 @@ resource "aws_instance" "parallax" {
     usermod -aG docker ec2-user
 
     sleep 15
-    rpk topic create signals \
+    rpk topic create parallax-signals \
       -c redpanda.remote.write=true \
       -c redpanda.remote.read=true
   EOF

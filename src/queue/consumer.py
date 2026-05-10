@@ -8,8 +8,7 @@ from src.orders.order_placement import OrderPlacer
 
 def consume():
     bootstrap = os.environ.get("REDPANDA_BROKERS", "localhost:9092")
-    topic     = os.environ.get("SIGNALS_TOPIC", "signals")
-
+    topic     = os.environ.get("SIGNALS_TOPIC", "parallax-signals")
     consumer = KafkaConsumer(
         topic,
         bootstrap_servers=bootstrap,
