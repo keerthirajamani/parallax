@@ -115,6 +115,7 @@ resource "aws_instance" "parallax" {
     rpk redpanda config set redpanda.cloud_storage_region us-east-1
     rpk redpanda config set redpanda.cloud_storage_bucket us-east-1-parallax-redpanda
     rpk redpanda config set redpanda.cloud_storage_credentials_source aws_instance_metadata
+    rpk redpanda config set redpanda.enable_delete_truncate true
     systemctl enable redpanda
     systemctl start redpanda
 

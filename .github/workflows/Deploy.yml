@@ -137,7 +137,8 @@ jobs:
               --network host \
               --env-file /app/.env \
               --restart unless-stopped \
-              ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest
+              ${{ steps.login-ecr.outputs.registry }}/$ECR_REPOSITORY:latest \
+              tail -f /dev/null
 
             # India consumer
             sudo docker stop parallax-consumer-india || true
@@ -168,12 +169,13 @@ jobs:
             # Install crontab (idempotent — replaces on every deploy)
             crontab - << 'CRON'
             CRON_TZ=Asia/Kolkata
+            10 8,20 * * * sudo docker start parallax
             15 8,20 * * * sudo docker exec parallax python scripts/run.py token_refresh >> /var/log/parallax/token_refresh.log 2>&1
-            20 9 * * 1-5 sudo docker start parallax-consumer-india
             30 8 * * 1-5 sudo docker exec parallax python scripts/run.py forever_order_update '{"market":"india"}' >> /var/log/parallax/portfolio_update.log 2>&1
+            20 9 * * 1-5 sudo docker start parallax-consumer-india
             26 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"IN_EQUITY"}' --place-orders >> /var/log/parallax/nse_daily.log 2>&1
             27 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"IN_EQUITY"}' --place-orders >> /var/log/parallax/nse_weekly.log 2>&1
-            05 16 * * 1-5 sudo docker stop parallax-consumer-india
+            05 16 * * 1-5 sudo docker stop parallax-consumer-india parallax
             CRON_TZ=America/New_York
             # 20 8,20 * * 1-5 sudo docker restart parallax-consumer-us
             54 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"US_EQUITY"}' --place-orders >> /var/log/parallax/nyse_daily.log 2>&1
