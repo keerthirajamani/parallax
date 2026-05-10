@@ -24,5 +24,5 @@ def consume():
         signals = payload.get("signals", [])
         if not signals:
             continue
-        print(f"consumer: offset={message.offset} entity={entity} signals={len(signals)}. signals={signals}")
-        place_orders(payload, entity)
+        print(f"consumer: offset={message.offset} entity={entity} signals={len(signals)}. payload={payload}")
+        place_orders([payload], entity)
