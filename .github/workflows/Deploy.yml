@@ -173,6 +173,7 @@ jobs:
             15 8,20 * * * sudo docker exec parallax python scripts/run.py token_refresh >> /var/log/parallax/token_refresh.log 2>&1
             30 8 * * 1-5 sudo docker exec parallax python scripts/run.py forever_order_update '{"market":"india"}' >> /var/log/parallax/portfolio_update.log 2>&1
             20 9 * * 1-5 sudo docker start parallax-consumer-india
+            15 10-15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"hours","interval":1,"entity":"IN_INDEX"}' --place-orders >> /var/log/parallax/in_index_hourly.log 2>&1
             26 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"IN_EQUITY"}' --place-orders >> /var/log/parallax/nse_daily.log 2>&1
             27 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"IN_EQUITY"}' --place-orders >> /var/log/parallax/nse_weekly.log 2>&1
             05 16 * * 1-5 sudo docker stop parallax-consumer-india parallax
