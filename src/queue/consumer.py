@@ -4,6 +4,9 @@ import os
 from kafka import KafkaConsumer
 
 from src.orders.order_placement import OrderPlacer
+from src.orders.webhook_trigger import send_to_webhook
+
+IN_INDEX = "IN_INDEX"
 
 
 def consume(market: str):
@@ -37,4 +40,7 @@ def consume(market: str):
             continue
 
         print(f"consumer: offset={message.offset} entity={entity} signals={len(signals)}")
-        print(placer.place_orders([payload], entity))
+        if entity == IN_INDEX:
+            send_to_webhook(payload)
+        else:
+            print(placer.place_orders([payload], entity))

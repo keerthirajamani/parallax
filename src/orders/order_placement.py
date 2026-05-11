@@ -144,7 +144,6 @@ def _place_orders_for_account(account: dict, client, signals: list[dict], market
 
 def _execute(client, broker: str, account_id: str, signals: list[dict], side: str, max_capital: float) -> list[dict]:
     flat = flatten_signals(signals, signal_type=side)
-    print("flat", flat)
     if not flat:
         print(f"account={account_id} broker={broker} side={side} — no signals, skipping")
         return []
