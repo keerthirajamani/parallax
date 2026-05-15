@@ -50,10 +50,10 @@ def forever_order_lambda_handler(event, _context):
                     }
                     print(f"order_info {order_info}")
                     print(f"\nForever Order already exists for {holding.get('tradingSymbol')}")
-                    # dhan_broker.modify_forever_order(client, order_info.get('orderId'), holding.get('dpQty'), tgt_price, tgt_price, order_info.get('orderFlag'), order_info.get('legName'))
+                    dhan_broker.modify_forever_order(client, order_info.get('orderId'), holding.get('dpQty'), tgt_price, tgt_price, order_info.get('orderFlag'), order_info.get('legName'))
                 else:
                     print(f"\nForever Order doesn't exists for {holding.get('tradingSymbol')}")
-                    # dhan_broker.place_forever_order(client, holding.get('securityId'), holding.get('dpQty'), tgt_price, tgt_price)
+                    dhan_broker.place_forever_order(client, holding.get('securityId'), holding.get('dpQty'), tgt_price, tgt_price)
 
             except Exception:
                 print(f"\n[ERROR] Failed to process {holding.get('tradingSymbol')} in account {account_id}")
