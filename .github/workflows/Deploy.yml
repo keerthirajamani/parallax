@@ -132,7 +132,7 @@ jobs:
             # Main container
             sudo docker stop parallax || true
             sudo docker rm parallax || true
-            sudo docker run -d \
+            sudo docker create \
               --name parallax \
               --network host \
               --env-file /app/.env \
@@ -143,7 +143,7 @@ jobs:
             # India consumer
             sudo docker stop parallax-consumer-india || true
             sudo docker rm parallax-consumer-india || true
-            sudo docker run -d \
+            sudo docker create \
               --name parallax-consumer-india \
               --network host \
               --env-file /app/.env \
@@ -154,7 +154,7 @@ jobs:
             # US consumer
             sudo docker stop parallax-consumer-us || true
             sudo docker rm parallax-consumer-us || true
-            sudo docker run -d \
+            sudo docker create \
               --name parallax-consumer-us \
               --network host \
               --env-file /app/.env \
@@ -181,6 +181,7 @@ jobs:
             # 20 8,20 * * 1-5 sudo docker restart parallax-consumer-us
             # 54 15 * * 1-5 sudo docker exec parallax python scripts/run.py signals '{"unit":"days","interval":1,"entity":"US_EQUITY"}' --place-orders >> /var/log/parallax/nyse_daily.log 2>&1
             # 55 15 * * 5 sudo docker exec parallax python scripts/run.py signals '{"unit":"weeks","interval":1,"entity":"US_EQUITY"}' --place-orders >> /var/log/parallax/nyse_weekly.log 2>&1
+            55 16 * * 1-5 sudo docker stop parallax-consumer-us
             CRON
 
             echo "Deployed successfully"
