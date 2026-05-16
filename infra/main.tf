@@ -18,18 +18,6 @@ provider "aws" {
   region = var.aws_region
 }
 
-# ── Data ──────────────────────────────────────────────────────────────────────
-
-data "aws_ami" "amazon_linux" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["al2023-ami-*-x86_64"]
-  }
-}
-
 # ── VPC ───────────────────────────────────────────────────────────────────────
 
 resource "aws_vpc" "parallax" {
@@ -91,7 +79,7 @@ resource "aws_security_group" "parallax" {
 # ── EC2 Instance ──────────────────────────────────────────────────────────────
 
 resource "aws_instance" "parallax" {
-  ami                    = data.aws_ami.amazon_linux.id
+  ami                    = var.ami_id
   instance_type          = "t3.small"
   key_name               = var.key_pair_name
   subnet_id              = aws_subnet.parallax.id
